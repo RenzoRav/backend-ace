@@ -11,15 +11,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {
-      "spring.profiles.active=test",
-      "spring.datasource.url=jdbc:postgresql://127.0.0.1:5433/florir_test",
-      "spring.datasource.username=florir",
-      "spring.datasource.password=florir_dev",
-      "florir.bootstrap.email=gestora@florir.local",
-      "florir.bootstrap.password=FlorirDev123!",
-      "florir.bootstrap.enabled=true"
-    })
+    properties = {"spring.profiles.active=test"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ApiIntegrationTests {
   @LocalServerPort int port;
