@@ -201,4 +201,20 @@ public class RelationshipService {
     audit.record("REPLY", "SupportTicket", t.getId());
     return view(t);
   }
+
+  @Transactional(readOnly = true)
+  public WhatsAppPreview birthdayPreview(String id) {
+    var c = customers.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    if (c.getBirthday() == null) throw new ApiException(400, "Cliente sem aniversário cadastrado");
+    String message =
+        "Feliz aniversário, " + c.getName() + "! A Florir deseja um dia especial para você.";
+    return new WhatsAppPreview(
+        null,
+        message,
+        "https://wa.me/55"
+            + c.getPhone()
+            + "?text="
+            + URLEncoder.encode(message, StandardCharsets.UTF_8),
+        false);
+  }
 }

@@ -79,4 +79,9 @@ public class RelationshipController {
   TicketView ticket(@Valid @RequestBody TicketInput d) {
     return service.ticket(d);
   }
+
+  @GetMapping("/manager/customers/{id}/birthday-whatsapp-preview")
+  WhatsAppPreview birthday(@PathVariable String id) {
+    return service.birthdayPreview(id);
+  }
 }
