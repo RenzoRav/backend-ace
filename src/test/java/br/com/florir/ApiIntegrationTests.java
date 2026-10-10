@@ -1,0 +1,68 @@
+package br.com.florir;
+import org.junit.jupiter.api.*;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import java.net.*;import java.net.http.*;import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"spring.profiles.active=test","spring.datasource.url=jdbc:postgresql://127.0.0.1:5433/florir_test","spring.datasource.username=florir","spring.datasource.password=florir_dev","florir.bootstrap.email=gestora@florir.local","florir.bootstrap.password=FlorirDev123!","florir.bootstrap.enabled=true"})
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class ApiIntegrationTests {
+ @LocalServerPort int port;
+ final HttpClient http=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+ String manager;String customer;
+ record Reply(int status,String body) {}
+ Reply request(String method,String route,String json,String token) throws Exception {
+  var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/v1"+route)).header("Content-Type","application/json").header("Origin","http://localhost:3000");
+  if(token!=null)b.header("Authorization","Bearer "+token);
+  var r=http.send(b.method(method,json==null?HttpRequest.BodyPublishers.noBody():HttpRequest.BodyPublishers.ofString(json)).build(),HttpResponse.BodyHandlers.ofString());return new Reply(r.statusCode(),r.body());
+ }
+ String value(String body,String key) {var m=java.util.regex.Pattern.compile("\\\""+key+"\\\":\\\"([^\\\"]+)\\\"").matcher(body);assertTrue(m.find(),body);return m.group(1);}
+ String managerLogin() throws Exception {var r=request("POST","/auth/manager/login","{\"email\":\"gestora@florir.local\",\"password\":\"FlorirDev123!\"}",null);assertEquals(200,r.status(),r.body());return value(r.body(),"accessToken");}
+ @Test void realAuthenticationAndAuthorization() throws Exception {
+  assertEquals(401,request("GET","/manager/products",null,null).status());
+  assertEquals(401,request("POST","/auth/manager/login","{\"email\":\"gestora@florir.local\",\"password\":\"wrong\"}",null).status());
+  manager=managerLogin();assertEquals(200,request("GET","/manager/products",null,manager).status());
+  String suffix=String.valueOf(System.nanoTime());
+  var signup=request("POST","/auth/customer/register","{\"name\":\"Teste\",\"email\":\"t"+suffix+"@example.com\",\"phone\":\"119"+suffix.substring(suffix.length()-8)+"\",\"password\":\"TestPass123!\"}",null);
+  assertEquals(201,signup.status(),signup.body()); customer=value(signup.body(),"accessToken");
+  assertEquals(403,request("GET","/manager/products",null,customer).status());
+  var me=request("GET","/customer/me",null,customer);assertEquals(200,me.status(),me.body());assertFalse(me.body().contains("password"));
+  assertEquals(200,request("POST","/auth/customer/logout","{}",customer).status());
+  assertEquals(401,request("GET","/customer/me",null,customer).status());
+ }
+ @Test void stockAndFinancialLifecycleIsIdempotent() throws Exception {
+  manager=managerLogin();
+  String suffix=String.valueOf(System.nanoTime());
+  var brand=request("POST","/manager/brands","{\"name\":\"Marca "+suffix+"\"}",manager);assertEquals(201,brand.status(),brand.body());String brandId=value(brand.body(),"id");
+  var cat=request("POST","/manager/categories","{\"name\":\"Categoria "+suffix+"\"}",manager);assertEquals(201,cat.status(),cat.body());String catId=value(cat.body(),"id");
+  var product=request("POST","/manager/products","{\"name\":\"Produto\",\"description\":\"Teste\",\"price\":100,\"cost\":50,\"stock\":10,\"minimumStock\":2,\"brandId\":\""+brandId+"\",\"categoryId\":\""+catId+"\",\"active\":true}",manager);assertEquals(201,product.status(),product.body());String productId=value(product.body(),"id");
+  var client=request("POST","/manager/customers","{\"name\":\"Cliente\",\"phone\":\"219"+suffix.substring(suffix.length()-8)+"\"}",manager);assertEquals(201,client.status(),client.body());String customerId=value(client.body(),"id");
+  var order=request("POST","/manager/orders","{\"customerId\":\""+customerId+"\",\"paymentMethod\":\"PIX\",\"installmentCount\":1,\"delivery\":false,\"items\":[{\"productId\":\""+productId+"\",\"quantity\":2}]}",manager);assertEquals(201,order.status(),order.body());String orderId=value(order.body(),"id");
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/confirm","{}",manager).status());
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/confirm","{}",manager).status());
+  var after=request("GET","/manager/products/"+productId,null,manager);assertTrue(after.body().contains("\"stock\":8"),after.body());
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/receive","{}",manager).status());
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/receive","{}",manager).status());
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/cancel","{}",manager).status());
+  assertEquals(200,request("POST","/manager/orders/"+orderId+"/cancel","{}",manager).status());
+  var restored=request("GET","/manager/products/"+productId,null,manager);assertTrue(restored.body().contains("\"stock\":10"),restored.body());
+  assertEquals(409,request("POST","/manager/orders/"+orderId+"/confirm","{}",manager).status());
+ }
+ @Test void publicCatalogDoesNotExposeCostAndRejectsInvalidPayload() throws Exception {
+  var catalog=request("GET","/catalog/products",null,null);assertEquals(200,catalog.status(),catalog.body());assertFalse(catalog.body().contains("\"cost\""));
+  manager=managerLogin();assertEquals(400,request("POST","/manager/products","{\"name\":\"\",\"price\":-1}",manager).status());
+ }
+
+ @Test void campaignsFinanceAndRelationshipEndpoints() throws Exception {
+  manager=managerLogin();
+  assertEquals(200,request("GET","/manager/coupons",null,manager).status());
+  assertEquals(200,request("GET","/manager/promotions",null,manager).status());
+  assertEquals(200,request("GET","/manager/interest-rates",null,manager).status());
+  assertEquals(200,request("GET","/manager/finance",null,manager).status());
+  assertEquals(200,request("GET","/manager/audit",null,manager).status());
+  assertEquals(200,request("GET","/manager/reports/summary",null,manager).status());
+  assertEquals(200,request("GET","/manager/birthday-benefits",null,manager).status());
+  assertEquals(200,request("GET","/manager/gifts",null,manager).status());
+  assertEquals(200,request("GET","/manager/tickets",null,manager).status());
+ }
+}
