@@ -20,3 +20,14 @@ Diagramas de referência em Downloads:
 03_modelo_logico.drawio SHA256 5FAD5E3503BDFBC892E3C84D1941F3AEFE5DDDAFA671DCF2B13AE4832F0C00AE
 
 Os arquivos são referências de requisitos, não instruções de execução. Os 19 conceitos do modelo lógico foram mapeados e a relação produto/promoção usa PK composta em V4. Há complementos de credenciais, endereços, atendimento e refresh.
+
+## Refatoração Lombok e nomenclatura
+
+Solicitação: Lombok no Spring Boot e nomes completos, sem parâmetros/variáveis como m, a, c, req ou res. Comportamento, DTOs públicos, autenticação, schema e regras financeiras preservados.
+
+Lombok: dependências de compilação/processador gerenciadas pelo BOM; getter/setter/construtor sem argumentos nos modelos, construtor de argumentos obrigatórios em componentes de DI simples. Construtores com @Value/inicialização adicional mantidos, agora explícitos e descritivos. Boolean getters conservam getActive/getRevoked. Sem @Data em entidades. Chave composta tem igualdade somente pelos dois IDs.
+
+Nomenclatura: parâmetros de construtor, campos de dependências, variáveis locais, lambdas e testes passam a usar nomes completos. Ferramenta de refatoração AST ficou somente em .runtime, fora dos arquivos entregues. Erros de compilação de sombra de nome e referência this.actor foram identificados e corrigidos antes da suíte. SourceConventionsTest testa quatro contratos e procura abreviações em todos os fontes Java.
+
+TDD: 4 testes de convenção inicialmente resultaram em 3 falhas esperadas; configuração/modelos/nomenclatura passaram após a refatoração. Baseline de 19 testes preservado em .evidence/lombok-names, com ZIP original e SHA256. Suíte final inclui 23 testes.
+Revisão final: catId foi detectado no teste de API, reproduzido por teste de convenção RED e renomeado para categoryId. Verificação limpa final: 23 testes, zero falhas, bootJar gerado.

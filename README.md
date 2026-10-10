@@ -59,3 +59,12 @@ A associação produto/promoção usa chave primária composta (product_id,promo
 Defina DB_URL, DB_USER, DB_PASSWORD, JWT_SECRET (mínimo 32 bytes) e FRONTEND_ORIGIN antes de iniciar. O perfil dev é **explícito** no script; sem ele, senha e chave não têm padrão. Cookie Secure está ativo por padrão. Para criar a primeira gestora, defina BOOTSTRAP_ENABLED=true, MANAGER_EMAIL e MANAGER_PASSWORD; após a criação, desligue o bootstrap. .env.example é referência, não arquivo carregado pelo Spring. A versão Gradle gerada substituiu a prevista na etapa de desenho; o PostgreSQL local 18 foi testado.
 
 A integração do frontend anterior é uma etapa distinta: esta entrega cria e executa a API em Documentos, sem alegar que as telas existentes já usam esses endpoints.
+## Lombok e nomes completos
+
+O projeto usa Lombok em tempo de compilação (compileOnly/annotationProcessor), com a versão gerenciada pelo Spring Boot. Modelos usam @Getter, @Setter e @NoArgsConstructor; dependências simples usam @RequiredArgsConstructor. Construtores que têm @Value ou inicialização adicional continuam explícitos, com parâmetros completos, por exemplo this.managerRepository = managerRepository.
+
+Não se usa @Data nas entidades, para evitar equals/hashCode/toString sobre associações JPA e credenciais. A chave composta ProductPromotionId usa @EqualsAndHashCode apenas nos dois identificadores. lombok.config mantém o contrato getActive()/getRevoked() existente. DTOs permanecem records, sem adicionar anotações redundantes.
+
+Variáveis e parâmetros usam nomes completos em produção e nos testes: manager, customerAccount, product, purchaseOrder, installment, managerRepository, passwordEncoder, request e response. Identificadores de protocolo/API como id e url foram preservados. SourceConventionsTest verifica a configuração do Lombok, os acessores gerados e nomes de variáveis/parâmetros, além da suíte funcional PostgreSQL.
+
+Referências: https://projectlombok.org/setup/gradle e https://projectlombok.org/features/GetterSetter.
