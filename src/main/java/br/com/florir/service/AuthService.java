@@ -18,74 +18,85 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class AuthService {
-  private final ManagerRepository managers;
-  private final CustomerAccountRepository accounts;
-  private final CustomerRepository customers;
-  private final RefreshSessionRepository sessions;
-  private final PasswordEncoder passwords;
-  private final JwtEncoder encoder;
+  private final ManagerRepository managerRepository;
+  private final CustomerAccountRepository customerAccountRepository;
+  private final CustomerRepository customerRepository;
+  private final RefreshSessionRepository refreshSessionRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtEncoder jwtEncoder;
   private final String issuer, audience;
   private final String dummyHash;
   @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
   public AuthService(
-      ManagerRepository m,
-      CustomerAccountRepository a,
-      CustomerRepository c,
-      RefreshSessionRepository s,
-      PasswordEncoder p,
-      JwtEncoder e,
-      @Value("$" + "{florir.jwt.issuer}") String i,
-      @Value("$" + "{florir.jwt.audience}") String aud) {
-    managers = m;
-    accounts = a;
-    customers = c;
-    sessions = s;
-    passwords = p;
-    encoder = e;
-    issuer = i;
-    audience = aud;
-    dummyHash = p.encode(UUID.randomUUID().toString());
+      ManagerRepository managerRepository,
+      CustomerAccountRepository customerAccountRepository,
+      CustomerRepository customerRepository,
+      RefreshSessionRepository refreshSessionRepository,
+      PasswordEncoder passwordEncoder,
+      JwtEncoder jwtEncoder,
+      @Value("$" + "{florir.jwt.issuer}") String issuer,
+      @Value("$" + "{florir.jwt.audience}") String audience) {
+    this.managerRepository = managerRepository;
+    this.customerAccountRepository = customerAccountRepository;
+    this.customerRepository = customerRepository;
+    this.refreshSessionRepository = refreshSessionRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.jwtEncoder = jwtEncoder;
+    this.issuer = issuer;
+    this.audience = audience;
+    dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
   }
 
   public record Result(Session session, String refreshToken) {}
 
-  private String email(String e) {
-    return e.strip().toLowerCase(Locale.ROOT);
+  private String email(String emailAddress) {
+    return emailAddress.strip().toLowerCase(Locale.ROOT);
   }
 
   public Result login(String role, Login login) {
     if ("MANAGER".equals(role)) {
-      var m = managers.findByEmail(email(login.email())).orElse(null);
+      var manager = managerRepository.findByEmail(email(login.email())).orElse(null);
       boolean matches =
-          passwords.matches(login.password(), m == null ? dummyHash : m.getPasswordHash());
-      if (m == null || !m.getActive() || !matches)
+          passwordEncoder.matches(
+              login.password(), manager == null ? dummyHash : manager.getPasswordHash());
+      if (manager == null || !manager.getActive() || !matches)
         throw new ApiException(401, "Credenciais inválidas");
-      return issue(role, m.getId(), m.getName(), m.getCredentialVersion());
+      return issue(role, manager.getId(), manager.getName(), manager.getCredentialVersion());
     }
-    var a = accounts.findByEmail(email(login.email())).orElse(null);
+    var customerAccount = customerAccountRepository.findByEmail(email(login.email())).orElse(null);
     boolean matches =
-        passwords.matches(login.password(), a == null ? dummyHash : a.getPasswordHash());
-    if (a == null || !matches) throw new ApiException(401, "Credenciais inválidas");
-    return issue(role, a.getId(), a.getCustomer().getName(), a.getCredentialVersion());
+        passwordEncoder.matches(
+            login.password(),
+            customerAccount == null ? dummyHash : customerAccount.getPasswordHash());
+    if (customerAccount == null || !matches) throw new ApiException(401, "Credenciais inválidas");
+    return issue(
+        role,
+        customerAccount.getId(),
+        customerAccount.getCustomer().getName(),
+        customerAccount.getCredentialVersion());
   }
 
   public Result register(Register data) {
     String phone = PhoneNumbers.normalize(data.phone());
     String mail = email(data.email());
-    if (accounts.existsByEmail(mail) || customers.existsByPhone(phone))
+    if (customerAccountRepository.existsByEmail(mail) || customerRepository.existsByPhone(phone))
       throw ApiException.conflict("E-mail ou telefone já cadastrado");
-    var c = new Customer();
-    c.setName(data.name().strip());
-    c.setPhone(phone);
-    c.setBirthday(data.birthday());
-    customers.save(c);
-    var a = new CustomerAccount();
-    a.setCustomer(c);
-    a.setEmail(mail);
-    a.setPasswordHash(passwords.encode(data.password()));
-    accounts.save(a);
-    return issue("CUSTOMER", a.getId(), c.getName(), a.getCredentialVersion());
+    var customer = new Customer();
+    customer.setName(data.name().strip());
+    customer.setPhone(phone);
+    customer.setBirthday(data.birthday());
+    customerRepository.save(customer);
+    var customerAccount = new CustomerAccount();
+    customerAccount.setCustomer(customer);
+    customerAccount.setEmail(mail);
+    customerAccount.setPasswordHash(passwordEncoder.encode(data.password()));
+    customerAccountRepository.save(customerAccount);
+    return issue(
+        "CUSTOMER",
+        customerAccount.getId(),
+        customer.getName(),
+        customerAccount.getCredentialVersion());
   }
 
   private Result issue(String role, Long id, String name, long version) {
@@ -101,21 +112,22 @@ public class AuthService {
             .claim("role", role)
             .claim("credentialVersion", version)
             .build();
-    String jwt =
-        encoder
+    String accessToken =
+        jwtEncoder
             .encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
             .getTokenValue();
     byte[] bytes = new byte[32];
     new SecureRandom().nextBytes(bytes);
-    String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    String refreshToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     var refresh = new RefreshSession();
     refresh.setRole(role);
     refresh.setAccountId(id);
     refresh.setCredentialVersion(version);
-    refresh.setTokenHash(hash(raw));
+    refresh.setTokenHash(hash(refreshToken));
     refresh.setExpiresAt(now.plusSeconds(604800));
-    sessions.save(refresh);
-    return new Result(new Session(jwt, "Bearer", 900, role, id.toString(), name), raw);
+    refreshSessionRepository.save(refresh);
+    return new Result(
+        new Session(accessToken, "Bearer", 900, role, id.toString(), name), refreshToken);
   }
 
   public static String hash(String value) {
@@ -123,28 +135,29 @@ public class AuthService {
       return HexFormat.of()
           .formatHex(
               MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException(e);
+    } catch (NoSuchAlgorithmException exception) {
+      throw new IllegalStateException(exception);
     }
   }
 
-  private boolean validSession(RefreshSession s, String role, long version) {
-    return role.equals(s.getRole())
-        && !s.getRevoked()
-        && s.getExpiresAt().isAfter(Instant.now())
-        && s.getCredentialVersion() == version;
+  private boolean validSession(RefreshSession refreshSession, String role, long version) {
+    return role.equals(refreshSession.getRole())
+        && !refreshSession.getRevoked()
+        && refreshSession.getExpiresAt().isAfter(Instant.now())
+        && refreshSession.getCredentialVersion() == version;
   }
 
-  public Result refresh(String role, String raw) {
-    if (raw == null || raw.isBlank()) throw new ApiException(401, "Sessão expirada");
+  public Result refresh(String role, String refreshToken) {
+    if (refreshToken == null || refreshToken.isBlank())
+      throw new ApiException(401, "Sessão expirada");
     var session =
-        sessions
-            .findByTokenHash(hash(raw))
+        refreshSessionRepository
+            .findByTokenHash(hash(refreshToken))
             .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
     if (!role.equals(session.getRole())) throw new ApiException(401, "Sessão expirada");
     if ("MANAGER".equals(role)) {
       var account =
-          managers
+          managerRepository
               .lockById(session.getAccountId())
               .filter(Manager::getActive)
               .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
@@ -155,7 +168,7 @@ public class AuthService {
       return issue(role, account.getId(), account.getName(), account.getCredentialVersion());
     }
     var account =
-        accounts
+        customerAccountRepository
             .lockById(session.getAccountId())
             .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
     entityManager.refresh(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
@@ -166,9 +179,9 @@ public class AuthService {
         role, account.getId(), account.getCustomer().getName(), account.getCredentialVersion());
   }
 
-  public void logout(String role, String raw) {
-    if (raw == null || raw.isBlank()) return;
-    var optional = sessions.findByTokenHash(hash(raw));
+  public void logout(String role, String refreshToken) {
+    if (refreshToken == null || refreshToken.isBlank()) return;
+    var optional = refreshSessionRepository.findByTokenHash(hash(refreshToken));
     if (optional.isEmpty()) return;
     var session = optional.get();
     if (!role.equals(session.getRole())
@@ -176,11 +189,11 @@ public class AuthService {
         || session.getExpiresAt().isBefore(Instant.now())) return;
     long version;
     if ("MANAGER".equals(role)) {
-      var account = managers.lockById(session.getAccountId());
+      var account = managerRepository.lockById(session.getAccountId());
       if (account.isEmpty()) return;
       version = account.get().getCredentialVersion();
     } else {
-      var account = accounts.lockById(session.getAccountId());
+      var account = customerAccountRepository.lockById(session.getAccountId());
       if (account.isEmpty()) return;
       version = account.get().getCredentialVersion();
     }
@@ -190,26 +203,28 @@ public class AuthService {
 
   public void revoke(String role, Long id) {
     if ("MANAGER".equals(role)) {
-      var account = managers.lockById(id).orElseThrow(ApiException::missing);
+      var account = managerRepository.lockById(id).orElseThrow(ApiException::missing);
       account.setCredentialVersion(account.getCredentialVersion() + 1);
     } else {
-      var account = accounts.lockById(id).orElseThrow(ApiException::missing);
+      var account = customerAccountRepository.lockById(id).orElseThrow(ApiException::missing);
       account.setCredentialVersion(account.getCredentialVersion() + 1);
     }
-    sessions.findByRoleAndAccountId(role, id).forEach(s -> s.setRevoked(true));
+    refreshSessionRepository
+        .findByRoleAndAccountId(role, id)
+        .forEach(refreshSession -> refreshSession.setRevoked(true));
   }
 
   public void changePassword(String role, Long id, PasswordChange data) {
     if ("MANAGER".equals(role)) {
-      var account = managers.lockById(id).orElseThrow(ApiException::missing);
-      if (!passwords.matches(data.currentPassword(), account.getPasswordHash()))
+      var account = managerRepository.lockById(id).orElseThrow(ApiException::missing);
+      if (!passwordEncoder.matches(data.currentPassword(), account.getPasswordHash()))
         throw new ApiException(401, "Senha atual inválida");
-      account.setPasswordHash(passwords.encode(data.newPassword()));
+      account.setPasswordHash(passwordEncoder.encode(data.newPassword()));
     } else {
-      var account = accounts.lockById(id).orElseThrow(ApiException::missing);
-      if (!passwords.matches(data.currentPassword(), account.getPasswordHash()))
+      var account = customerAccountRepository.lockById(id).orElseThrow(ApiException::missing);
+      if (!passwordEncoder.matches(data.currentPassword(), account.getPasswordHash()))
         throw new ApiException(401, "Senha atual inválida");
-      account.setPasswordHash(passwords.encode(data.newPassword()));
+      account.setPasswordHash(passwordEncoder.encode(data.newPassword()));
     }
     revoke(role, id);
   }

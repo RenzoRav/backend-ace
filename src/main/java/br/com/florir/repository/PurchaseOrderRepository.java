@@ -11,7 +11,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
   java.util.List<PurchaseOrder> findByCustomerIdOrderByCreatedAtDesc(Long id);
 
-  java.util.Optional<PurchaseOrder> findByIdempotencyKey(String key);
+  java.util.Optional<PurchaseOrder> findByIdempotencyKey(String idempotencyKey);
 
   long countByCouponIdAndStatusNot(Long id, String status);
 }

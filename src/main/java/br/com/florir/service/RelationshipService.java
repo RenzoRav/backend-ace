@@ -10,209 +10,211 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class RelationshipService {
-  private final BirthdayBenefitRepository benefits;
-  private final GiftRepository gifts;
-  private final BillingRecordRepository billing;
-  private final InstallmentRepository installments;
-  private final CustomerRepository customers;
-  private final CouponRepository coupons;
-  private final SupportTicketRepository tickets;
-  private final PurchaseOrderRepository orders;
-  private final ActorService actor;
-  private final AuditService audit;
+  private final BirthdayBenefitRepository birthdayBenefitRepository;
+  private final GiftRepository giftRepository;
+  private final BillingRecordRepository billingRecordRepository;
+  private final InstallmentRepository installmentRepository;
+  private final CustomerRepository customerRepository;
+  private final CouponRepository couponRepository;
+  private final SupportTicketRepository supportTicketRepository;
+  private final PurchaseOrderRepository purchaseOrderRepository;
+  private final ActorService actorService;
+  private final AuditService auditService;
 
-  public RelationshipService(
-      BirthdayBenefitRepository b,
-      GiftRepository g,
-      BillingRecordRepository br,
-      InstallmentRepository i,
-      CustomerRepository c,
-      CouponRepository co,
-      SupportTicketRepository t,
-      PurchaseOrderRepository o,
-      ActorService a,
-      AuditService au) {
-    benefits = b;
-    gifts = g;
-    billing = br;
-    installments = i;
-    customers = c;
-    coupons = co;
-    tickets = t;
-    orders = o;
-    actor = a;
-    audit = au;
-  }
-
-  private BenefitView view(BirthdayBenefit b) {
+  private BenefitView view(BirthdayBenefit birthdayBenefit) {
     return new BenefitView(
-        b.getId().toString(),
-        b.getCustomer().getId().toString(),
-        b.getCustomer().getName(),
-        b.getCoupon() == null ? null : b.getCoupon().getId().toString(),
-        b.getYear(),
-        b.getGrantedAt());
+        birthdayBenefit.getId().toString(),
+        birthdayBenefit.getCustomer().getId().toString(),
+        birthdayBenefit.getCustomer().getName(),
+        birthdayBenefit.getCoupon() == null ? null : birthdayBenefit.getCoupon().getId().toString(),
+        birthdayBenefit.getYear(),
+        birthdayBenefit.getGrantedAt());
   }
 
-  private GiftView view(Gift g) {
+  private GiftView view(Gift gift) {
     return new GiftView(
-        g.getId().toString(),
-        g.getCustomer().getId().toString(),
-        g.getCustomer().getName(),
-        g.getDescription(),
-        g.getDate());
+        gift.getId().toString(),
+        gift.getCustomer().getId().toString(),
+        gift.getCustomer().getName(),
+        gift.getDescription(),
+        gift.getDate());
   }
 
-  private TicketView view(SupportTicket t) {
+  private TicketView view(SupportTicket supportTicket) {
     return new TicketView(
-        t.getId().toString(),
-        t.getCustomer().getId().toString(),
-        t.getOrder() == null ? null : t.getOrder().getId().toString(),
-        t.getSubject(),
-        t.getMessage(),
-        t.getStatus(),
-        t.getReply(),
-        t.getCreatedAt());
+        supportTicket.getId().toString(),
+        supportTicket.getCustomer().getId().toString(),
+        supportTicket.getOrder() == null ? null : supportTicket.getOrder().getId().toString(),
+        supportTicket.getSubject(),
+        supportTicket.getMessage(),
+        supportTicket.getStatus(),
+        supportTicket.getReply(),
+        supportTicket.getCreatedAt());
   }
 
   @Transactional(readOnly = true)
   public PageView<BenefitView> benefits(int page, int size) {
-    return PageView.from(benefits.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(
+        birthdayBenefitRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
-  public BenefitView benefit(BenefitInput d) {
-    var c =
-        customers.findById(CatalogService.id(d.customerId())).orElseThrow(ApiException::missing);
-    if (c.getBirthday() == null) throw new ApiException(400, "Cliente sem aniversário cadastrado");
-    var b = new BirthdayBenefit();
-    b.setCustomer(c);
-    b.setCoupon(
-        d.couponId() == null
+  public BenefitView benefit(BenefitInput benefitInput) {
+    var customer =
+        customerRepository
+            .findById(CatalogService.id(benefitInput.customerId()))
+            .orElseThrow(ApiException::missing);
+    if (customer.getBirthday() == null)
+      throw new ApiException(400, "Cliente sem aniversário cadastrado");
+    var birthdayBenefit = new BirthdayBenefit();
+    birthdayBenefit.setCustomer(customer);
+    birthdayBenefit.setCoupon(
+        benefitInput.couponId() == null
             ? null
-            : coupons.findById(CatalogService.id(d.couponId())).orElseThrow(ApiException::missing));
-    b.setYear(d.year());
-    b.setGrantedAt(Instant.now());
-    benefits.save(b);
-    audit.record("GRANT", "BirthdayBenefit", b.getId());
-    return view(b);
+            : couponRepository
+                .findById(CatalogService.id(benefitInput.couponId()))
+                .orElseThrow(ApiException::missing));
+    birthdayBenefit.setYear(benefitInput.year());
+    birthdayBenefit.setGrantedAt(Instant.now());
+    birthdayBenefitRepository.save(birthdayBenefit);
+    auditService.record("GRANT", "BirthdayBenefit", birthdayBenefit.getId());
+    return view(birthdayBenefit);
   }
 
   @Transactional(readOnly = true)
   public PageView<GiftView> gifts(int page, int size) {
-    return PageView.from(gifts.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(giftRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
-  public GiftView gift(GiftInput d) {
-    var g = new Gift();
-    g.setCustomer(
-        customers.findById(CatalogService.id(d.customerId())).orElseThrow(ApiException::missing));
-    g.setDescription(d.description());
-    g.setDate(d.date());
-    gifts.save(g);
-    audit.record("GRANT", "Gift", g.getId());
-    return view(g);
+  public GiftView gift(GiftInput giftInput) {
+    var gift = new Gift();
+    gift.setCustomer(
+        customerRepository
+            .findById(CatalogService.id(giftInput.customerId()))
+            .orElseThrow(ApiException::missing));
+    gift.setDescription(giftInput.description());
+    gift.setDate(giftInput.date());
+    giftRepository.save(gift);
+    auditService.record("GRANT", "Gift", gift.getId());
+    return view(gift);
   }
 
   @Transactional(readOnly = true)
   public WhatsAppPreview preview(String id) {
-    var i = installments.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    var c = i.getOrder().getCustomer();
+    var installment =
+        installmentRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    var customer = installment.getOrder().getCustomer();
     String message =
         "Olá, "
-            + c.getName()
+            + customer.getName()
             + "! A parcela "
-            + i.getNumber()
+            + installment.getNumber()
             + " de R$ "
-            + i.getAmount()
+            + installment.getAmount()
             + " vence em "
-            + i.getDueDate()
+            + installment.getDueDate()
             + ".";
     return new WhatsAppPreview(
-        i.getId().toString(),
+        installment.getId().toString(),
         message,
         "https://wa.me/55"
-            + c.getPhone()
+            + customer.getPhone()
             + "?text="
             + URLEncoder.encode(message, StandardCharsets.UTF_8),
         false);
   }
 
-  public BillingView declareSent(String id, BillingInput d) {
-    var i = installments.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    if (!"PENDING".equals(i.getStatus())) throw ApiException.conflict("Parcela não está aberta");
-    var b = new BillingRecord();
-    b.setInstallment(i);
-    b.setMessage(d.message());
-    b.setDeclaredSentAt(Instant.now());
-    billing.save(b);
-    audit.record("DECLARE_SENT", "BillingRecord", b.getId());
+  public BillingView declareSent(String id, BillingInput billingInput) {
+    var installment =
+        installmentRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    if (!"PENDING".equals(installment.getStatus()))
+      throw ApiException.conflict("Parcela não está aberta");
+    var billingRecord = new BillingRecord();
+    billingRecord.setInstallment(installment);
+    billingRecord.setMessage(billingInput.message());
+    billingRecord.setDeclaredSentAt(Instant.now());
+    billingRecordRepository.save(billingRecord);
+    auditService.record("DECLARE_SENT", "BillingRecord", billingRecord.getId());
     return new BillingView(
-        b.getId().toString(), i.getId().toString(), b.getMessage(), b.getDeclaredSentAt());
+        billingRecord.getId().toString(),
+        installment.getId().toString(),
+        billingRecord.getMessage(),
+        billingRecord.getDeclaredSentAt());
   }
 
   @Transactional(readOnly = true)
   public PageView<BillingView> billings(int page, int size) {
     return PageView.from(
-        billing
+        billingRecordRepository
             .findAll(CatalogService.page(page, size))
             .map(
-                b ->
+                billingRecord ->
                     new BillingView(
-                        b.getId().toString(),
-                        b.getInstallment().getId().toString(),
-                        b.getMessage(),
-                        b.getDeclaredSentAt())));
+                        billingRecord.getId().toString(),
+                        billingRecord.getInstallment().getId().toString(),
+                        billingRecord.getMessage(),
+                        billingRecord.getDeclaredSentAt())));
   }
 
   @Transactional(readOnly = true)
   public PageView<TicketView> tickets(int page, int size) {
-    return PageView.from(tickets.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(
+        supportTicketRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
   @Transactional(readOnly = true)
   public List<TicketView> myTickets() {
-    return tickets.findByCustomerId(actor.customer().getId()).stream().map(this::view).toList();
+    return supportTicketRepository.findByCustomerId(actorService.customer().getId()).stream()
+        .map(this::view)
+        .toList();
   }
 
-  public TicketView ticket(TicketInput d) {
-    var t = new SupportTicket();
-    t.setCustomer(actor.customer());
-    if (d.orderId() != null) {
-      var o = orders.findById(CatalogService.id(d.orderId())).orElseThrow(ApiException::missing);
-      actor.owns(o.getCustomer());
-      t.setOrder(o);
+  public TicketView ticket(TicketInput ticketInput) {
+    var supportTicket = new SupportTicket();
+    supportTicket.setCustomer(actorService.customer());
+    if (ticketInput.orderId() != null) {
+      var purchaseOrder =
+          purchaseOrderRepository
+              .findById(CatalogService.id(ticketInput.orderId()))
+              .orElseThrow(ApiException::missing);
+      actorService.owns(purchaseOrder.getCustomer());
+      supportTicket.setOrder(purchaseOrder);
     }
-    t.setSubject(d.subject());
-    t.setMessage(d.message());
-    tickets.save(t);
-    return view(t);
+    supportTicket.setSubject(ticketInput.subject());
+    supportTicket.setMessage(ticketInput.message());
+    supportTicketRepository.save(supportTicket);
+    return view(supportTicket);
   }
 
-  public TicketView reply(String id, ReplyInput d) {
-    var t = tickets.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    t.setReply(d.reply());
-    t.setStatus(d.status());
-    audit.record("REPLY", "SupportTicket", t.getId());
-    return view(t);
+  public TicketView reply(String id, ReplyInput replyInput) {
+    var supportTicket =
+        supportTicketRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    supportTicket.setReply(replyInput.reply());
+    supportTicket.setStatus(replyInput.status());
+    auditService.record("REPLY", "SupportTicket", supportTicket.getId());
+    return view(supportTicket);
   }
 
   @Transactional(readOnly = true)
   public WhatsAppPreview birthdayPreview(String id) {
-    var c = customers.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    if (c.getBirthday() == null) throw new ApiException(400, "Cliente sem aniversário cadastrado");
+    var customer =
+        customerRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    if (customer.getBirthday() == null)
+      throw new ApiException(400, "Cliente sem aniversário cadastrado");
     String message =
-        "Feliz aniversário, " + c.getName() + "! A Florir deseja um dia especial para você.";
+        "Feliz aniversário, " + customer.getName() + "! A Florir deseja um dia especial para você.";
     return new WhatsAppPreview(
         null,
         message,
         "https://wa.me/55"
-            + c.getPhone()
+            + customer.getPhone()
             + "?text="
             + URLEncoder.encode(message, StandardCharsets.UTF_8),
         false);

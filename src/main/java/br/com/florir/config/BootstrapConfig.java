@@ -12,25 +12,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class BootstrapConfig implements CommandLineRunner {
-  private final ManagerRepository managers;
-  private final InterestRateRepository rates;
-  private final PasswordEncoder passwords;
+  private final ManagerRepository managerRepository;
+  private final InterestRateRepository interestRateRepository;
+  private final PasswordEncoder passwordEncoder;
   private final boolean enabled;
   private final String email, password;
 
   public BootstrapConfig(
-      ManagerRepository m,
-      InterestRateRepository r,
-      PasswordEncoder p,
-      @Value("$" + "{florir.bootstrap.enabled}") boolean on,
-      @Value("$" + "{florir.bootstrap.email}") String e,
-      @Value("$" + "{florir.bootstrap.password}") String pw) {
-    managers = m;
-    rates = r;
-    passwords = p;
-    enabled = on;
-    email = e;
-    password = pw;
+      ManagerRepository managerRepository,
+      InterestRateRepository interestRateRepository,
+      PasswordEncoder passwordEncoder,
+      @Value("$" + "{florir.bootstrap.enabled}") boolean bootstrapEnabled,
+      @Value("$" + "{florir.bootstrap.email}") String managerEmail,
+      @Value("$" + "{florir.bootstrap.password}") String managerPassword) {
+    this.managerRepository = managerRepository;
+    this.interestRateRepository = interestRateRepository;
+    this.passwordEncoder = passwordEncoder;
+    enabled = bootstrapEnabled;
+    email = managerEmail;
+    password = managerPassword;
   }
 
   @Transactional
@@ -39,20 +39,20 @@ public class BootstrapConfig implements CommandLineRunner {
       if (email.isBlank() || password.length() < 10)
         throw new IllegalArgumentException("Configure credenciais da gestora");
       String mail = email.strip().toLowerCase(Locale.ROOT);
-      if (!managers.existsByEmail(mail)) {
-        var m = new Manager();
-        m.setName("Gestora Florir");
-        m.setEmail(mail);
-        m.setPasswordHash(passwords.encode(password));
-        managers.save(m);
+      if (!managerRepository.existsByEmail(mail)) {
+        var manager = new Manager();
+        manager.setName("Gestora Florir");
+        manager.setEmail(mail);
+        manager.setPasswordHash(passwordEncoder.encode(password));
+        managerRepository.save(manager);
       }
     }
-    for (int n = 1; n <= 12; n++) {
-      if (rates.findByInstallmentCount(n).isEmpty()) {
+    for (int installmentCount = 1; installmentCount <= 12; installmentCount++) {
+      if (interestRateRepository.findByInstallmentCount(installmentCount).isEmpty()) {
         var rate = new InterestRate();
-        rate.setInstallmentCount(n);
+        rate.setInstallmentCount(installmentCount);
         rate.setPercent(BigDecimal.ZERO);
-        rates.save(rate);
+        interestRateRepository.save(rate);
       }
     }
   }

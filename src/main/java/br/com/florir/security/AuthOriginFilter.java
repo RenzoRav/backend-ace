@@ -3,29 +3,28 @@ package br.com.florir.security;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+@RequiredArgsConstructor
 public class AuthOriginFilter extends OncePerRequestFilter {
   private final String origin;
 
-  public AuthOriginFilter(String origin) {
-    this.origin = origin;
-  }
-
   protected void doFilterInternal(
-      HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    if (req.getRequestURI().startsWith("/api/v1/auth/")
-        && !req.getMethod().equals("OPTIONS")
-        && !req.getMethod().equals("GET")) {
-      String sent = req.getHeader("Origin");
+    if (request.getRequestURI().startsWith("/api/v1/auth/")
+        && !request.getMethod().equals("OPTIONS")
+        && !request.getMethod().equals("GET")) {
+      String sent = request.getHeader("Origin");
       boolean cookie =
-          req.getRequestURI().endsWith("/refresh") || req.getRequestURI().endsWith("/logout");
+          request.getRequestURI().endsWith("/refresh")
+              || request.getRequestURI().endsWith("/logout");
       if ((sent != null && !origin.equals(sent)) || (cookie && sent == null)) {
-        res.setStatus(403);
+        response.setStatus(403);
         return;
       }
     }
-    chain.doFilter(req, res);
+    chain.doFilter(request, response);
   }
 }

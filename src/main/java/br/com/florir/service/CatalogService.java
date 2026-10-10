@@ -5,38 +5,27 @@ import br.com.florir.exception.ApiException;
 import br.com.florir.model.*;
 import br.com.florir.repository.*;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class CatalogService {
-  private final ProductRepository products;
-  private final BrandRepository brands;
-  private final CategoryRepository categories;
-  private final InventoryMovementRepository movements;
-  private final AuditService audit;
-
-  public CatalogService(
-      ProductRepository p,
-      BrandRepository b,
-      CategoryRepository c,
-      InventoryMovementRepository m,
-      AuditService a) {
-    products = p;
-    brands = b;
-    categories = c;
-    movements = m;
-    audit = a;
-  }
+  private final ProductRepository productRepository;
+  private final BrandRepository brandRepository;
+  private final CategoryRepository categoryRepository;
+  private final InventoryMovementRepository inventoryMovementRepository;
+  private final AuditService auditService;
 
   public static Long id(String id) {
     try {
       long value = Long.parseLong(id);
       if (value < 1) throw new NumberFormatException();
       return value;
-    } catch (NumberFormatException e) {
+    } catch (NumberFormatException exception) {
       throw new ApiException(400, "Identificador inválido");
     }
   }
@@ -46,170 +35,184 @@ public class CatalogService {
     return PageRequest.of(page, size, Sort.by("id"));
   }
 
-  public ProductView view(Product p) {
+  public ProductView view(Product product) {
     return new ProductView(
-        p.getId().toString(),
-        p.getName(),
-        p.getDescription(),
-        p.getImageUrl(),
-        p.getPrice(),
-        p.getCost(),
-        p.getStock(),
-        p.getMinimumStock(),
-        p.getActive(),
-        new Named(p.getBrand().getId().toString(), p.getBrand().getName()),
-        new Named(p.getCategory().getId().toString(), p.getCategory().getName()));
+        product.getId().toString(),
+        product.getName(),
+        product.getDescription(),
+        product.getImageUrl(),
+        product.getPrice(),
+        product.getCost(),
+        product.getStock(),
+        product.getMinimumStock(),
+        product.getActive(),
+        new Named(product.getBrand().getId().toString(), product.getBrand().getName()),
+        new Named(product.getCategory().getId().toString(), product.getCategory().getName()));
   }
 
-  public PublicProduct publicView(Product p) {
+  public PublicProduct publicView(Product product) {
     return new PublicProduct(
-        p.getId().toString(),
-        p.getName(),
-        p.getDescription(),
-        p.getImageUrl(),
-        p.getPrice(),
-        p.getStock(),
-        new Named(p.getBrand().getId().toString(), p.getBrand().getName()),
-        new Named(p.getCategory().getId().toString(), p.getCategory().getName()));
+        product.getId().toString(),
+        product.getName(),
+        product.getDescription(),
+        product.getImageUrl(),
+        product.getPrice(),
+        product.getStock(),
+        new Named(product.getBrand().getId().toString(), product.getBrand().getName()),
+        new Named(product.getCategory().getId().toString(), product.getCategory().getName()));
   }
 
   @Transactional(readOnly = true)
   public PageView<ProductView> list(int page, int size) {
-    return PageView.from(products.findAll(page(page, size)).map(this::view));
+    return PageView.from(productRepository.findAll(page(page, size)).map(this::view));
   }
 
   @Transactional(readOnly = true)
   public PageView<PublicProduct> catalog(
       int page, int size, String search, String brandId, String categoryId) {
-    org.springframework.data.jpa.domain.Specification<Product> spec =
+    org.springframework.data.jpa.domain.Specification<Product> productSpecification =
         (root, query, builder) -> builder.isTrue(root.get("active"));
     if (search != null && !search.isBlank()) {
       if (search.length() > 255) throw new ApiException(400, "Pesquisa muito longa");
       String value = "%" + search.strip().toLowerCase(Locale.ROOT) + "%";
-      spec =
-          spec.and((root, query, builder) -> builder.like(builder.lower(root.get("name")), value));
+      productSpecification =
+          productSpecification.and(
+              (root, query, builder) -> builder.like(builder.lower(root.get("name")), value));
     }
     if (brandId != null) {
       Long brand = id(brandId);
-      spec = spec.and((root, query, builder) -> builder.equal(root.get("brand").get("id"), brand));
+      productSpecification =
+          productSpecification.and(
+              (root, query, builder) -> builder.equal(root.get("brand").get("id"), brand));
     }
     if (categoryId != null) {
       Long category = id(categoryId);
-      spec =
-          spec.and(
+      productSpecification =
+          productSpecification.and(
               (root, query, builder) -> builder.equal(root.get("category").get("id"), category));
     }
-    return PageView.from(products.findAll(spec, page(page, size)).map(this::publicView));
+    return PageView.from(
+        productRepository.findAll(productSpecification, page(page, size)).map(this::publicView));
   }
 
   @Transactional(readOnly = true)
   public ProductView get(String id) {
-    return view(products.findById(id(id)).orElseThrow(ApiException::missing));
+    return view(productRepository.findById(id(id)).orElseThrow(ApiException::missing));
   }
 
   public ProductView save(String id, ProductInput data) {
-    var p =
-        id == null ? new Product() : products.lockById(id(id)).orElseThrow(ApiException::missing);
-    int old = p.getStock();
-    p.setName(data.name().strip());
-    p.setDescription(data.description());
-    p.setImageUrl(data.imageUrl());
-    p.setPrice(PricingCalculator.money(data.price()));
-    p.setCost(PricingCalculator.money(data.cost()));
-    p.setMinimumStock(data.minimumStock());
-    p.setActive(data.active());
-    p.setBrand(brands.findById(id(data.brandId())).orElseThrow(ApiException::missing));
-    p.setCategory(categories.findById(id(data.categoryId())).orElseThrow(ApiException::missing));
-    p.setStock(data.stock());
-    products.save(p);
+    var product =
+        id == null
+            ? new Product()
+            : productRepository.lockById(id(id)).orElseThrow(ApiException::missing);
+    int previousStock = product.getStock();
+    product.setName(data.name().strip());
+    product.setDescription(data.description());
+    product.setImageUrl(data.imageUrl());
+    product.setPrice(PricingCalculator.money(data.price()));
+    product.setCost(PricingCalculator.money(data.cost()));
+    product.setMinimumStock(data.minimumStock());
+    product.setActive(data.active());
+    product.setBrand(
+        brandRepository.findById(id(data.brandId())).orElseThrow(ApiException::missing));
+    product.setCategory(
+        categoryRepository.findById(id(data.categoryId())).orElseThrow(ApiException::missing));
+    product.setStock(data.stock());
+    productRepository.save(product);
     stockMovement(
-        p,
-        data.stock() - old,
+        product,
+        data.stock() - previousStock,
         id == null ? "INITIAL" : "ADJUSTMENT",
         "Cadastro/edição pela gestora");
-    audit.record(id == null ? "CREATE" : "UPDATE", "Product", p.getId());
-    return view(p);
+    auditService.record(id == null ? "CREATE" : "UPDATE", "Product", product.getId());
+    return view(product);
   }
 
   public ProductView adjust(String id, StockAdjustment data) {
-    var p = products.lockById(id(id)).orElseThrow(ApiException::missing);
-    int delta = data.stock() - p.getStock();
-    p.setStock(data.stock());
-    stockMovement(p, delta, "ADJUSTMENT", data.reason());
-    audit.record("ADJUST_STOCK", "Product", p.getId());
-    return view(p);
+    var product = productRepository.lockById(id(id)).orElseThrow(ApiException::missing);
+    int delta = data.stock() - product.getStock();
+    product.setStock(data.stock());
+    stockMovement(product, delta, "ADJUSTMENT", data.reason());
+    auditService.record("ADJUST_STOCK", "Product", product.getId());
+    return view(product);
   }
 
-  private void stockMovement(Product p, int delta, String type, String reason) {
+  private void stockMovement(Product product, int delta, String type, String reason) {
     if (delta == 0) return;
     var movement = new InventoryMovement();
-    movement.setProduct(p);
+    movement.setProduct(product);
     movement.setType(type);
     movement.setQuantity(delta);
     movement.setDescription(reason);
-    movements.save(movement);
+    inventoryMovementRepository.save(movement);
   }
 
   public void deactivate(String id) {
-    var p = products.lockById(id(id)).orElseThrow(ApiException::missing);
-    p.setActive(false);
-    audit.record("DEACTIVATE", "Product", p.getId());
+    var product = productRepository.lockById(id(id)).orElseThrow(ApiException::missing);
+    product.setActive(false);
+    auditService.record("DEACTIVATE", "Product", product.getId());
   }
 
   @Transactional(readOnly = true)
   public List<Named> brands() {
-    return brands.findAll(Sort.by("name")).stream()
-        .map(b -> new Named(b.getId().toString(), b.getName()))
+    return brandRepository.findAll(Sort.by("name")).stream()
+        .map(brand -> new Named(brand.getId().toString(), brand.getName()))
         .toList();
   }
 
   @Transactional(readOnly = true)
   public List<Named> categories() {
-    return categories.findAll(Sort.by("name")).stream()
-        .map(c -> new Named(c.getId().toString(), c.getName()))
+    return categoryRepository.findAll(Sort.by("name")).stream()
+        .map(category -> new Named(category.getId().toString(), category.getName()))
         .toList();
   }
 
   public Named brand(String id, NameInput data) {
-    var b = id == null ? new Brand() : brands.findById(id(id)).orElseThrow(ApiException::missing);
-    if ((id == null || !b.getName().equalsIgnoreCase(data.name().strip()))
-        && brands.existsByNameIgnoreCase(data.name().strip()))
+    var brand =
+        id == null
+            ? new Brand()
+            : brandRepository.findById(id(id)).orElseThrow(ApiException::missing);
+    if ((id == null || !brand.getName().equalsIgnoreCase(data.name().strip()))
+        && brandRepository.existsByNameIgnoreCase(data.name().strip()))
       throw ApiException.conflict("Marca já cadastrada");
-    b.setName(data.name().strip());
-    brands.save(b);
-    audit.record(id == null ? "CREATE" : "UPDATE", "Brand", b.getId());
-    return new Named(b.getId().toString(), b.getName());
+    brand.setName(data.name().strip());
+    brandRepository.save(brand);
+    auditService.record(id == null ? "CREATE" : "UPDATE", "Brand", brand.getId());
+    return new Named(brand.getId().toString(), brand.getName());
   }
 
   public Named category(String id, NameInput data) {
-    var c =
+    var category =
         id == null
             ? new Category()
-            : categories.findById(id(id)).orElseThrow(ApiException::missing);
-    if ((id == null || !c.getName().equalsIgnoreCase(data.name().strip()))
-        && categories.existsByNameIgnoreCase(data.name().strip()))
+            : categoryRepository.findById(id(id)).orElseThrow(ApiException::missing);
+    if ((id == null || !category.getName().equalsIgnoreCase(data.name().strip()))
+        && categoryRepository.existsByNameIgnoreCase(data.name().strip()))
       throw ApiException.conflict("Categoria já cadastrada");
-    c.setName(data.name().strip());
-    categories.save(c);
-    audit.record(id == null ? "CREATE" : "UPDATE", "Category", c.getId());
-    return new Named(c.getId().toString(), c.getName());
+    category.setName(data.name().strip());
+    categoryRepository.save(category);
+    auditService.record(id == null ? "CREATE" : "UPDATE", "Category", category.getId());
+    return new Named(category.getId().toString(), category.getName());
   }
 
   public void deleteBrand(String id) {
-    var b = brands.findById(id(id)).orElseThrow(ApiException::missing);
-    audit.record("DELETE", "Brand", b.getId());
-    brands.delete(b);
+    var brand = brandRepository.findById(id(id)).orElseThrow(ApiException::missing);
+    auditService.record("DELETE", "Brand", brand.getId());
+    brandRepository.delete(brand);
   }
 
   public void deleteCategory(String id) {
-    var c = categories.findById(id(id)).orElseThrow(ApiException::missing);
-    audit.record("DELETE", "Category", c.getId());
-    categories.delete(c);
+    var category = categoryRepository.findById(id(id)).orElseThrow(ApiException::missing);
+    auditService.record("DELETE", "Category", category.getId());
+    categoryRepository.delete(category);
   }
 
   @Transactional(readOnly = true)
   public PublicProduct detail(String id) {
     return publicView(
-        products.findById(id(id)).filter(Product::getActive).orElseThrow(ApiException::missing));
+        productRepository
+            .findById(id(id))
+            .filter(Product::getActive)
+            .orElseThrow(ApiException::missing));
   }
 }

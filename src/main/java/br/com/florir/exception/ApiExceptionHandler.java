@@ -11,8 +11,8 @@ public class ApiExceptionHandler {
   public record Error(String message) {}
 
   @ExceptionHandler(ApiException.class)
-  ResponseEntity<Error> api(ApiException e) {
-    return ResponseEntity.status(e.status()).body(new Error(e.getMessage()));
+  ResponseEntity<Error> api(ApiException exception) {
+    return ResponseEntity.status(exception.status()).body(new Error(exception.getMessage()));
   }
 
   @ExceptionHandler({
@@ -20,17 +20,18 @@ public class ApiExceptionHandler {
     org.springframework.http.converter.HttpMessageNotReadableException.class,
     org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
   })
-  ResponseEntity<Error> invalid(Exception e) {
+  ResponseEntity<Error> invalid(Exception exception) {
     return ResponseEntity.badRequest().body(new Error("Dados inválidos"));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  ResponseEntity<Error> validation(MethodArgumentNotValidException e) {
+  ResponseEntity<Error> validation(MethodArgumentNotValidException exception) {
     return ResponseEntity.badRequest()
         .body(
             new Error(
-                e.getBindingResult().getFieldErrors().stream()
-                    .map(x -> x.getField() + ": " + x.getDefaultMessage())
+                exception.getBindingResult().getFieldErrors().stream()
+                    .map(
+                        fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                     .collect(java.util.stream.Collectors.joining("; "))));
   }
 
@@ -39,7 +40,7 @@ public class ApiExceptionHandler {
     OptimisticLockingFailureException.class,
     org.springframework.dao.PessimisticLockingFailureException.class
   })
-  ResponseEntity<Error> conflict(Exception e) {
+  ResponseEntity<Error> conflict(Exception exception) {
     return ResponseEntity.status(409)
         .body(new Error("Conflito de dados; atualize e tente novamente"));
   }

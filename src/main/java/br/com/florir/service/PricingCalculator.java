@@ -37,8 +37,9 @@ public final class PricingCalculator {
     if (cents < count)
       throw new IllegalArgumentException("Cada parcela precisa ter pelo menos um centavo");
     var amounts = new ArrayList<BigDecimal>();
-    for (int i = 0; i < count; i++)
-      amounts.add(BigDecimal.valueOf(cents / count + (i < cents % count ? 1 : 0), 2));
+    for (int installmentIndex = 0; installmentIndex < count; installmentIndex++)
+      amounts.add(
+          BigDecimal.valueOf(cents / count + (installmentIndex < cents % count ? 1 : 0), 2));
     return List.copyOf(amounts);
   }
 }

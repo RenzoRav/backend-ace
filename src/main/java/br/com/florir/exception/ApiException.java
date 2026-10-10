@@ -16,7 +16,7 @@ public class ApiException extends RuntimeException {
     return new ApiException(404, "Registro não encontrado");
   }
 
-  public static ApiException conflict(String m) {
-    return new ApiException(409, m);
+  public static ApiException conflict(String message) {
+    return new ApiException(409, message);
   }
 }

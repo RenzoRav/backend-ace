@@ -45,21 +45,22 @@ public class SecurityConfig {
                     secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"))
             .macAlgorithm(MacAlgorithm.HS256)
             .build();
-    OAuth2TokenValidator<Jwt> aud =
-        j ->
-            j.getAudience().contains(audience)
+    OAuth2TokenValidator<Jwt> audienceValidator =
+        jwtToken ->
+            jwtToken.getAudience().contains(audience)
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
     decoder.setJwtValidator(
-        new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), aud));
+        new DelegatingOAuth2TokenValidator<>(
+            JwtValidators.createDefaultWithIssuer(issuer), audienceValidator));
     return decoder;
   }
 
   @Bean
   SecurityFilterChain security(
       HttpSecurity http,
-      ManagerRepository managers,
-      CustomerAccountRepository accounts,
+      ManagerRepository managerRepository,
+      CustomerAccountRepository customerAccountRepository,
       @Value("$" + "{florir.allowed-origin}") String origin)
       throws Exception {
     var authorities = new JwtGrantedAuthoritiesConverter();
@@ -67,12 +68,15 @@ public class SecurityConfig {
     authorities.setAuthorityPrefix("ROLE_");
     var converter = new JwtAuthenticationConverter();
     converter.setJwtGrantedAuthoritiesConverter(authorities);
-    http.csrf(c -> c.disable())
-        .cors(c -> {})
-        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    http.csrf(configuration -> configuration.disable())
+        .cors(configuration -> {})
+        .sessionManagement(
+            sessionManagement ->
+                sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            a ->
-                a.requestMatchers("/api/v1/auth/**", "/api/v1/catalog/**", "/api/v1/health")
+            authorizationRules ->
+                authorizationRules
+                    .requestMatchers("/api/v1/auth/**", "/api/v1/catalog/**", "/api/v1/health")
                     .permitAll()
                     .requestMatchers("/api/v1/manager/**")
                     .hasRole("MANAGER")
@@ -80,23 +84,26 @@ public class SecurityConfig {
                     .hasRole("CUSTOMER")
                     .anyRequest()
                     .authenticated())
-        .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))
+        .oauth2ResourceServer(
+            resourceServer ->
+                resourceServer.jwt(jwtToken -> jwtToken.jwtAuthenticationConverter(converter)))
         .addFilterBefore(new AuthOriginFilter(origin), BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new CredentialVersionFilter(managers, accounts), BearerTokenAuthenticationFilter.class);
+            new CredentialVersionFilter(managerRepository, customerAccountRepository),
+            BearerTokenAuthenticationFilter.class);
     return http.build();
   }
 
   @Bean
   CorsConfigurationSource corsConfigurationSource(
       @Value("$" + "{florir.allowed-origin}") String origin) {
-    var c = new CorsConfiguration();
-    c.setAllowedOrigins(List.of(origin));
-    c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    c.setAllowedHeaders(List.of("Content-Type", "Authorization", "Idempotency-Key"));
-    c.setAllowCredentials(true);
+    var configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(List.of(origin));
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "Idempotency-Key"));
+    configuration.setAllowCredentials(true);
     var source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", c);
+    source.registerCorsConfiguration("/**", configuration);
     return source;
   }
 }

@@ -4,36 +4,37 @@ import br.com.florir.repository.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+@RequiredArgsConstructor
 public class CredentialVersionFilter extends OncePerRequestFilter {
-  private final ManagerRepository managers;
-  private final CustomerAccountRepository accounts;
-
-  public CredentialVersionFilter(ManagerRepository m, CustomerAccountRepository a) {
-    managers = m;
-    accounts = a;
-  }
+  private final ManagerRepository managerRepository;
+  private final CustomerAccountRepository customerAccountRepository;
 
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    var auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.getPrincipal() instanceof Jwt jwtToken) {
       boolean valid = false;
       try {
-        Long id = Long.valueOf(jwt.getSubject());
-        Long version = jwt.getClaim("credentialVersion");
-        if ("MANAGER".equals(jwt.getClaimAsString("role")))
+        Long id = Long.valueOf(jwtToken.getSubject());
+        Long version = jwtToken.getClaim("credentialVersion");
+        if ("MANAGER".equals(jwtToken.getClaimAsString("role")))
           valid =
-              managers
+              managerRepository
                   .findById(id)
-                  .map(m -> m.getActive() && m.getCredentialVersion() == version)
+                  .map(manager -> manager.getActive() && manager.getCredentialVersion() == version)
                   .orElse(false);
-        else if ("CUSTOMER".equals(jwt.getClaimAsString("role")))
-          valid = accounts.findById(id).map(a -> a.getCredentialVersion() == version).orElse(false);
+        else if ("CUSTOMER".equals(jwtToken.getClaimAsString("role")))
+          valid =
+              customerAccountRepository
+                  .findById(id)
+                  .map(customerAccount -> customerAccount.getCredentialVersion() == version)
+                  .orElse(false);
       } catch (RuntimeException ignored) {
       }
       if (!valid) {

@@ -3,25 +3,22 @@ package br.com.florir.security;
 import br.com.florir.exception.ApiException;
 import br.com.florir.model.*;
 import br.com.florir.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ActorService {
-  private final ManagerRepository managers;
-  private final CustomerAccountRepository accounts;
-
-  public ActorService(ManagerRepository m, CustomerAccountRepository a) {
-    managers = m;
-    accounts = a;
-  }
+  private final ManagerRepository managerRepository;
+  private final CustomerAccountRepository customerAccountRepository;
 
   public Jwt jwt() {
-    var auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth == null || !(auth.getPrincipal() instanceof Jwt j))
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwtToken))
       throw new ApiException(401, "Autenticação necessária");
-    return j;
+    return jwtToken;
   }
 
   public String role() {
@@ -34,12 +31,15 @@ public class ActorService {
 
   public Manager manager() {
     if (!"MANAGER".equals(role())) throw new ApiException(403, "Acesso negado");
-    return managers.findById(accountId()).orElseThrow(ApiException::missing);
+    return managerRepository.findById(accountId()).orElseThrow(ApiException::missing);
   }
 
   public Customer customer() {
     if (!"CUSTOMER".equals(role())) throw new ApiException(403, "Acesso negado");
-    return accounts.findById(accountId()).orElseThrow(ApiException::missing).getCustomer();
+    return customerAccountRepository
+        .findById(accountId())
+        .orElseThrow(ApiException::missing)
+        .getCustomer();
   }
 
   public void owns(Customer customer) {

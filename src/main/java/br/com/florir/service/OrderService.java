@@ -9,144 +9,122 @@ import br.com.florir.security.ActorService;
 import java.math.*;
 import java.time.*;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class OrderService {
-  private final PurchaseOrderRepository orders;
-  private final OrderItemRepository items;
-  private final ProductRepository products;
-  private final CustomerRepository customers;
-  private final CouponRepository coupons;
-  private final ProductPromotionRepository promotions;
-  private final InterestRateRepository rates;
-  private final InstallmentRepository installments;
-  private final InventoryMovementRepository stock;
-  private final FinancialMovementRepository finance;
-  private final StatusHistoryRepository histories;
-  private final CustomerAddressRepository addresses;
-  private final ActorService actor;
-  private final AuditService audit;
+  private final PurchaseOrderRepository purchaseOrderRepository;
+  private final OrderItemRepository orderItemRepository;
+  private final ProductRepository productRepository;
+  private final CustomerRepository customerRepository;
+  private final CouponRepository couponRepository;
+  private final ProductPromotionRepository productPromotionRepository;
+  private final InterestRateRepository interestRateRepository;
+  private final InstallmentRepository installmentRepository;
+  private final InventoryMovementRepository inventoryMovementRepository;
+  private final FinancialMovementRepository financialMovementRepository;
+  private final StatusHistoryRepository statusHistoryRepository;
+  private final CustomerAddressRepository customerAddressRepository;
+  private final ActorService actorService;
+  private final AuditService auditService;
   private final Environment environment;
 
-  public OrderService(
-      PurchaseOrderRepository o,
-      OrderItemRepository i,
-      ProductRepository p,
-      CustomerRepository c,
-      CouponRepository co,
-      ProductPromotionRepository pr,
-      InterestRateRepository r,
-      InstallmentRepository in,
-      InventoryMovementRepository st,
-      FinancialMovementRepository f,
-      StatusHistoryRepository h,
-      CustomerAddressRepository a,
-      ActorService ac,
-      AuditService au,
-      Environment env) {
-    orders = o;
-    items = i;
-    products = p;
-    customers = c;
-    coupons = co;
-    promotions = pr;
-    rates = r;
-    installments = in;
-    stock = st;
-    finance = f;
-    histories = h;
-    addresses = a;
-    actor = ac;
-    audit = au;
-    environment = env;
-  }
-
-  public OrderView view(PurchaseOrder o) {
+  public OrderView view(PurchaseOrder purchaseOrder) {
     return new OrderView(
-        o.getId().toString(),
-        o.getCustomer().getId().toString(),
-        o.getCustomerName(),
-        o.getCustomerPhone(),
-        o.getStatus(),
-        o.getPaymentStatus(),
-        o.getPaymentMethod(),
-        o.getStockEffect(),
-        o.getSubtotal(),
-        o.getDiscount(),
-        o.getShipping(),
-        o.getInterest(),
-        o.getTotal(),
-        o.getInstallmentCount(),
-        o.getDelivery(),
-        o.getAddressSnapshot(),
-        o.getCreatedAt(),
-        items.findByOrderIdOrderById(o.getId()).stream()
+        purchaseOrder.getId().toString(),
+        purchaseOrder.getCustomer().getId().toString(),
+        purchaseOrder.getCustomerName(),
+        purchaseOrder.getCustomerPhone(),
+        purchaseOrder.getStatus(),
+        purchaseOrder.getPaymentStatus(),
+        purchaseOrder.getPaymentMethod(),
+        purchaseOrder.getStockEffect(),
+        purchaseOrder.getSubtotal(),
+        purchaseOrder.getDiscount(),
+        purchaseOrder.getShipping(),
+        purchaseOrder.getInterest(),
+        purchaseOrder.getTotal(),
+        purchaseOrder.getInstallmentCount(),
+        purchaseOrder.getDelivery(),
+        purchaseOrder.getAddressSnapshot(),
+        purchaseOrder.getCreatedAt(),
+        orderItemRepository.findByOrderIdOrderById(purchaseOrder.getId()).stream()
             .map(
-                i ->
+                orderItem ->
                     new ItemView(
-                        i.getId().toString(),
-                        i.getProduct().getId().toString(),
-                        i.getProductName(),
-                        i.getBrandName(),
-                        i.getCategoryName(),
-                        i.getQuantity(),
-                        i.getUnitPrice()))
+                        orderItem.getId().toString(),
+                        orderItem.getProduct().getId().toString(),
+                        orderItem.getProductName(),
+                        orderItem.getBrandName(),
+                        orderItem.getCategoryName(),
+                        orderItem.getQuantity(),
+                        orderItem.getUnitPrice()))
             .toList(),
-        installments.findByOrderIdOrderByNumber(o.getId()).stream()
+        installmentRepository.findByOrderIdOrderByNumber(purchaseOrder.getId()).stream()
             .map(
-                i ->
+                installment ->
                     new InstallmentView(
-                        i.getId().toString(),
-                        i.getNumber(),
-                        i.getAmount(),
-                        i.getDueDate(),
-                        i.getStatus(),
-                        i.getPaidAt()))
+                        installment.getId().toString(),
+                        installment.getNumber(),
+                        installment.getAmount(),
+                        installment.getDueDate(),
+                        installment.getStatus(),
+                        installment.getPaidAt()))
             .toList(),
-        histories.findByOrderIdOrderByCreatedAt(o.getId()).stream()
-            .map(h -> new HistoryView(h.getPreviousStatus(), h.getNextStatus(), h.getCreatedAt()))
+        statusHistoryRepository.findByOrderIdOrderByCreatedAt(purchaseOrder.getId()).stream()
+            .map(
+                statusHistory ->
+                    new HistoryView(
+                        statusHistory.getPreviousStatus(),
+                        statusHistory.getNextStatus(),
+                        statusHistory.getCreatedAt()))
             .toList());
   }
 
   @Transactional(readOnly = true)
   public PageView<OrderView> list(int page, int size) {
-    return PageView.from(orders.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(
+        purchaseOrderRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
   @Transactional(readOnly = true)
   public List<OrderView> myOrders() {
-    return orders.findByCustomerIdOrderByCreatedAtDesc(actor.customer().getId()).stream()
+    return purchaseOrderRepository
+        .findByCustomerIdOrderByCreatedAtDesc(actorService.customer().getId())
+        .stream()
         .map(this::view)
         .toList();
   }
 
   @Transactional(readOnly = true)
   public OrderView get(String id) {
-    var o = orders.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    actor.owns(o.getCustomer());
-    return view(o);
+    var purchaseOrder =
+        purchaseOrderRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    actorService.owns(purchaseOrder.getCustomer());
+    return view(purchaseOrder);
   }
 
   public OrderView create(OrderInput data, String rawKey) {
-    Customer c =
-        "CUSTOMER".equals(actor.role())
-            ? actor.customer()
-            : customers
+    Customer customer =
+        "CUSTOMER".equals(actorService.role())
+            ? actorService.customer()
+            : customerRepository
                 .findById(CatalogService.id(data.customerId()))
                 .orElseThrow(ApiException::missing);
-    String hash = AuthService.hash(data.toString() + "|" + c.getId());
-    String key = null;
+    String hash = AuthService.hash(data.toString() + "|" + customer.getId());
+    String idempotencyKey = null;
     if (rawKey != null) {
       if (rawKey.isBlank() || rawKey.length() > 128)
         throw new ApiException(400, "Idempotency-Key inválida");
-      key = actor.role() + ":" + actor.accountId() + ":" + rawKey;
-      var prior = orders.findByIdempotencyKey(key);
+      idempotencyKey = actorService.role() + ":" + actorService.accountId() + ":" + rawKey;
+      var prior = purchaseOrderRepository.findByIdempotencyKey(idempotencyKey);
       if (prior.isPresent()) {
-        actor.owns(prior.get().getCustomer());
+        actorService.owns(prior.get().getCustomer());
         if (!hash.equals(prior.get().getRequestHash()))
           throw ApiException.conflict("Chave de idempotência já usada com outros dados");
         return view(prior.get());
@@ -157,46 +135,51 @@ public class OrderService {
     BigDecimal couponDiscount = BigDecimal.ZERO;
     if (data.couponCode() != null && !data.couponCode().isBlank()) {
       var found =
-          coupons
+          couponRepository
               .findByCode(data.couponCode().strip().toUpperCase(Locale.ROOT))
               .orElseThrow(() -> new ApiException(400, "Cupom inválido"));
-      coupon = coupons.lockById(found.getId()).orElseThrow(ApiException::missing);
+      coupon = couponRepository.lockById(found.getId()).orElseThrow(ApiException::missing);
       if (today.isBefore(coupon.getValidFrom())
           || today.isAfter(coupon.getValidUntil())
           || (coupon.getUsageLimit() != null
-              && orders.countByCouponIdAndStatusNot(coupon.getId(), "CANCELLED")
+              && purchaseOrderRepository.countByCouponIdAndStatusNot(coupon.getId(), "CANCELLED")
                   >= coupon.getUsageLimit())) throw new ApiException(400, "Cupom indisponível");
     }
     var quantities = new TreeMap<Long, Integer>();
-    for (var i : data.items())
-      quantities.merge(CatalogService.id(i.productId()), i.quantity(), Math::addExact);
+    for (var orderItemInput : data.items())
+      quantities.merge(
+          CatalogService.id(orderItemInput.productId()), orderItemInput.quantity(), Math::addExact);
     var lines = new ArrayList<OrderItem>();
     BigDecimal subtotal = BigDecimal.ZERO;
     for (var entry : quantities.entrySet()) {
-      var p = products.lockById(entry.getKey()).orElseThrow(ApiException::missing);
-      if (!p.getActive()) throw new ApiException(400, "Produto indisponível");
-      if (entry.getValue() > p.getStock()) throw ApiException.conflict("Estoque insuficiente");
+      var product = productRepository.lockById(entry.getKey()).orElseThrow(ApiException::missing);
+      if (!product.getActive()) throw new ApiException(400, "Produto indisponível");
+      if (entry.getValue() > product.getStock())
+        throw ApiException.conflict("Estoque insuficiente");
       BigDecimal percent =
-          promotions.findByProductId(p.getId()).stream()
+          productPromotionRepository.findByProductId(product.getId()).stream()
               .map(ProductPromotion::getPromotion)
               .filter(
-                  pr -> !today.isBefore(pr.getValidFrom()) && !today.isAfter(pr.getValidUntil()))
+                  promotion ->
+                      !today.isBefore(promotion.getValidFrom())
+                          && !today.isAfter(promotion.getValidUntil()))
               .map(Promotion::getPercent)
               .max(BigDecimal::compareTo)
               .orElse(BigDecimal.ZERO);
       BigDecimal price =
           PricingCalculator.money(
-              p.getPrice()
+              product
+                  .getPrice()
                   .multiply(BigDecimal.ONE.subtract(percent.divide(new BigDecimal("100")))));
-      var i = new OrderItem();
-      i.setProduct(p);
-      i.setQuantity(entry.getValue());
-      i.setUnitPrice(price);
-      i.setUnitCost(p.getCost());
-      i.setProductName(p.getName());
-      i.setBrandName(p.getBrand().getName());
-      i.setCategoryName(p.getCategory().getName());
-      lines.add(i);
+      var orderItem = new OrderItem();
+      orderItem.setProduct(product);
+      orderItem.setQuantity(entry.getValue());
+      orderItem.setUnitPrice(price);
+      orderItem.setUnitCost(product.getCost());
+      orderItem.setProductName(product.getName());
+      orderItem.setBrandName(product.getBrand().getName());
+      orderItem.setCategoryName(product.getCategory().getName());
+      lines.add(orderItem);
       subtotal = subtotal.add(price.multiply(BigDecimal.valueOf(entry.getValue())));
     }
     if (coupon != null)
@@ -208,7 +191,7 @@ public class OrderService {
     int count = "INSTALLMENTS".equals(data.paymentMethod()) ? data.installmentCount() : 1;
     InterestRate rate =
         "INSTALLMENTS".equals(data.paymentMethod())
-            ? rates
+            ? interestRateRepository
                 .findByInstallmentCount(count)
                 .orElseThrow(() -> new ApiException(400, "Taxa de juros não configurada"))
             : null;
@@ -223,223 +206,252 @@ public class OrderService {
     String address = null;
     if (data.delivery()) {
       if (data.addressId() == null) throw new ApiException(400, "Endereço obrigatório");
-      var a =
-          addresses
+      var customerAddress =
+          customerAddressRepository
               .findById(CatalogService.id(data.addressId()))
               .orElseThrow(ApiException::missing);
-      if (!a.getCustomer().getId().equals(c.getId())) throw ApiException.missing();
+      if (!customerAddress.getCustomer().getId().equals(customer.getId()))
+        throw ApiException.missing();
       address =
-          a.getStreet()
+          customerAddress.getStreet()
               + ", "
-              + a.getNumber()
+              + customerAddress.getNumber()
               + ", "
-              + Objects.toString(a.getComplement(), "")
+              + Objects.toString(customerAddress.getComplement(), "")
               + " - "
-              + a.getDistrict()
+              + customerAddress.getDistrict()
               + ", "
-              + a.getCity()
+              + customerAddress.getCity()
               + "/"
-              + a.getState()
+              + customerAddress.getState()
               + " CEP "
-              + a.getPostalCode();
+              + customerAddress.getPostalCode();
     }
-    var o = new PurchaseOrder();
-    o.setCustomer(c);
-    o.setCustomerName(c.getName());
-    o.setCustomerPhone(c.getPhone());
-    o.setCoupon(coupon);
-    o.setInterestRate(rate);
-    o.setOrigin(actor.role());
-    o.setPaymentMethod(data.paymentMethod());
-    o.setInstallmentCount(count);
-    o.setDelivery(data.delivery());
-    o.setAddressSnapshot(address);
-    o.setSubtotal(pricing.subtotal());
-    o.setDiscount(pricing.discount());
-    o.setShipping(pricing.shipping());
-    o.setInterest(pricing.interest());
-    o.setTotal(pricing.total());
-    o.setIdempotencyKey(key);
-    o.setRequestHash(hash);
-    orders.save(o);
-    for (var i : lines) {
-      i.setOrder(o);
-      items.save(i);
+    var purchaseOrder = new PurchaseOrder();
+    purchaseOrder.setCustomer(customer);
+    purchaseOrder.setCustomerName(customer.getName());
+    purchaseOrder.setCustomerPhone(customer.getPhone());
+    purchaseOrder.setCoupon(coupon);
+    purchaseOrder.setInterestRate(rate);
+    purchaseOrder.setOrigin(actorService.role());
+    purchaseOrder.setPaymentMethod(data.paymentMethod());
+    purchaseOrder.setInstallmentCount(count);
+    purchaseOrder.setDelivery(data.delivery());
+    purchaseOrder.setAddressSnapshot(address);
+    purchaseOrder.setSubtotal(pricing.subtotal());
+    purchaseOrder.setDiscount(pricing.discount());
+    purchaseOrder.setShipping(pricing.shipping());
+    purchaseOrder.setInterest(pricing.interest());
+    purchaseOrder.setTotal(pricing.total());
+    purchaseOrder.setIdempotencyKey(idempotencyKey);
+    purchaseOrder.setRequestHash(hash);
+    purchaseOrderRepository.save(purchaseOrder);
+    for (var orderItem : lines) {
+      orderItem.setOrder(purchaseOrder);
+      orderItemRepository.save(orderItem);
     }
-    history(o, null, "NEW");
-    audit.record("CREATE", "PurchaseOrder", o.getId());
-    return view(o);
+    history(purchaseOrder, null, "NEW");
+    auditService.record("CREATE", "PurchaseOrder", purchaseOrder.getId());
+    return view(purchaseOrder);
   }
 
   private PurchaseOrder lock(String id) {
-    var o = orders.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    actor.owns(o.getCustomer());
-    return o;
+    var purchaseOrder =
+        purchaseOrderRepository.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    actorService.owns(purchaseOrder.getCustomer());
+    return purchaseOrder;
   }
 
-  private void history(PurchaseOrder o, String previous, String next) {
-    var h = new StatusHistory();
-    h.setOrder(o);
-    h.setPreviousStatus(previous);
-    h.setNextStatus(next);
-    if ("MANAGER".equals(actor.role())) h.setManager(actor.manager());
-    histories.save(h);
+  private void history(PurchaseOrder purchaseOrder, String previous, String next) {
+    var statusHistory = new StatusHistory();
+    statusHistory.setOrder(purchaseOrder);
+    statusHistory.setPreviousStatus(previous);
+    statusHistory.setNextStatus(next);
+    if ("MANAGER".equals(actorService.role())) statusHistory.setManager(actorService.manager());
+    statusHistoryRepository.save(statusHistory);
   }
 
-  private void transition(PurchaseOrder o, String status) {
-    String previous = o.getStatus();
-    o.setStatus(status);
-    history(o, previous, status);
-    audit.record("STATUS_" + status, "PurchaseOrder", o.getId());
+  private void transition(PurchaseOrder purchaseOrder, String status) {
+    String previous = purchaseOrder.getStatus();
+    purchaseOrder.setStatus(status);
+    history(purchaseOrder, previous, status);
+    auditService.record("STATUS_" + status, "PurchaseOrder", purchaseOrder.getId());
   }
 
-  private void confirm(PurchaseOrder o) {
-    if (!"NEW".equals(o.getStatus())) {
-      if (List.of("CONFIRMED", "PREPARING", "FINISHED").contains(o.getStatus())) return;
+  private void confirm(PurchaseOrder purchaseOrder) {
+    if (!"NEW".equals(purchaseOrder.getStatus())) {
+      if (List.of("CONFIRMED", "PREPARING", "FINISHED").contains(purchaseOrder.getStatus())) return;
       throw ApiException.conflict("Pedido cancelado");
     }
     var lines =
-        items.findByOrderIdOrderById(o.getId()).stream()
-            .sorted(Comparator.comparing(i -> i.getProduct().getId()))
+        orderItemRepository.findByOrderIdOrderById(purchaseOrder.getId()).stream()
+            .sorted(Comparator.comparing(orderItem -> orderItem.getProduct().getId()))
             .toList();
-    for (var i : lines) {
-      var p = products.lockById(i.getProduct().getId()).orElseThrow(ApiException::missing);
-      if (p.getStock() < i.getQuantity())
+    for (var orderItem : lines) {
+      var product =
+          productRepository
+              .lockById(orderItem.getProduct().getId())
+              .orElseThrow(ApiException::missing);
+      if (product.getStock() < orderItem.getQuantity())
         throw ApiException.conflict("Estoque insuficiente para confirmação");
-      p.setStock(p.getStock() - i.getQuantity());
-      inventory(p, o, -i.getQuantity(), "ORDER_OUT");
+      product.setStock(product.getStock() - orderItem.getQuantity());
+      inventory(product, purchaseOrder, -orderItem.getQuantity(), "ORDER_OUT");
     }
-    o.setStockEffect("APPLIED");
-    if ("INSTALLMENTS".equals(o.getPaymentMethod()) && o.getTotal().signum() > 0) {
-      var amounts = PricingCalculator.split(o.getTotal(), o.getInstallmentCount());
-      for (int n = 0; n < amounts.size(); n++) {
-        var i = new Installment();
-        i.setOrder(o);
-        i.setNumber(n + 1);
-        i.setAmount(amounts.get(n));
-        i.setDueDate(LocalDate.now().plusMonths(n + 1));
-        installments.save(i);
+    purchaseOrder.setStockEffect("APPLIED");
+    if ("INSTALLMENTS".equals(purchaseOrder.getPaymentMethod())
+        && purchaseOrder.getTotal().signum() > 0) {
+      var amounts =
+          PricingCalculator.split(purchaseOrder.getTotal(), purchaseOrder.getInstallmentCount());
+      for (int installmentIndex = 0; installmentIndex < amounts.size(); installmentIndex++) {
+        var installment = new Installment();
+        installment.setOrder(purchaseOrder);
+        installment.setNumber(installmentIndex + 1);
+        installment.setAmount(amounts.get(installmentIndex));
+        installment.setDueDate(LocalDate.now().plusMonths(installmentIndex + 1));
+        installmentRepository.save(installment);
       }
     }
-    if (o.getTotal().signum() == 0) o.setPaymentStatus("APPROVED");
-    transition(o, "CONFIRMED");
+    if (purchaseOrder.getTotal().signum() == 0) purchaseOrder.setPaymentStatus("APPROVED");
+    transition(purchaseOrder, "CONFIRMED");
   }
 
-  private void inventory(Product p, PurchaseOrder o, int amount, String type) {
-    var m = new InventoryMovement();
-    m.setProduct(p);
-    m.setOrder(o);
-    m.setType(type);
-    m.setQuantity(amount);
-    m.setDescription(type);
-    stock.save(m);
+  private void inventory(Product product, PurchaseOrder purchaseOrder, int amount, String type) {
+    var inventoryMovement = new InventoryMovement();
+    inventoryMovement.setProduct(product);
+    inventoryMovement.setOrder(purchaseOrder);
+    inventoryMovement.setType(type);
+    inventoryMovement.setQuantity(amount);
+    inventoryMovement.setDescription(type);
+    inventoryMovementRepository.save(inventoryMovement);
   }
 
   public OrderView confirm(String id) {
-    var o = lock(id);
-    confirm(o);
-    return view(o);
+    var purchaseOrder = lock(id);
+    confirm(purchaseOrder);
+    return view(purchaseOrder);
   }
 
   public OrderView status(String id, String next) {
-    var o = lock(id);
-    if (o.getStatus().equals(next)) return view(o);
-    boolean ok =
-        "PREPARING".equals(next) && "CONFIRMED".equals(o.getStatus())
-            || "FINISHED".equals(next) && List.of("CONFIRMED", "PREPARING").contains(o.getStatus());
-    if (!ok) throw ApiException.conflict("Transição de status inválida");
-    transition(o, next);
-    return view(o);
+    var purchaseOrder = lock(id);
+    if (purchaseOrder.getStatus().equals(next)) return view(purchaseOrder);
+    boolean validTransition =
+        "PREPARING".equals(next) && "CONFIRMED".equals(purchaseOrder.getStatus())
+            || "FINISHED".equals(next)
+                && List.of("CONFIRMED", "PREPARING").contains(purchaseOrder.getStatus());
+    if (!validTransition) throw ApiException.conflict("Transição de status inválida");
+    transition(purchaseOrder, next);
+    return view(purchaseOrder);
   }
 
-  private BigDecimal received(PurchaseOrder o) {
-    return finance.findByOrderId(o.getId()).stream()
-        .map(m -> "IN".equals(m.getType()) ? m.getAmount() : m.getAmount().negate())
+  private BigDecimal received(PurchaseOrder purchaseOrder) {
+    return financialMovementRepository.findByOrderId(purchaseOrder.getId()).stream()
+        .map(
+            financialMovement ->
+                "IN".equals(financialMovement.getType())
+                    ? financialMovement.getAmount()
+                    : financialMovement.getAmount().negate())
         .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
   private void movement(
-      PurchaseOrder o, Installment i, String type, BigDecimal amount, String description) {
+      PurchaseOrder purchaseOrder,
+      Installment installment,
+      String type,
+      BigDecimal amount,
+      String description) {
     if (amount.signum() <= 0) return;
-    var m = new FinancialMovement();
-    m.setOrder(o);
-    m.setInstallment(i);
-    m.setType(type);
-    m.setAmount(amount);
-    m.setDescription(description);
-    finance.save(m);
+    var financialMovement = new FinancialMovement();
+    financialMovement.setOrder(purchaseOrder);
+    financialMovement.setInstallment(installment);
+    financialMovement.setType(type);
+    financialMovement.setAmount(amount);
+    financialMovement.setDescription(description);
+    financialMovementRepository.save(financialMovement);
   }
 
   public OrderView receive(String id) {
-    var o = lock(id);
-    if ("CANCELLED".equals(o.getStatus())) throw ApiException.conflict("Pedido cancelado");
-    if ("INSTALLMENTS".equals(o.getPaymentMethod()))
+    var purchaseOrder = lock(id);
+    if ("CANCELLED".equals(purchaseOrder.getStatus()))
+      throw ApiException.conflict("Pedido cancelado");
+    if ("INSTALLMENTS".equals(purchaseOrder.getPaymentMethod()))
       throw new ApiException(400, "Registre recebimento em cada parcela");
-    confirm(o);
-    if (!"APPROVED".equals(o.getPaymentStatus())) {
-      movement(o, null, "IN", o.getTotal(), "Recebimento de pedido");
-      o.setPaymentStatus("APPROVED");
-      audit.record("RECEIVE", "PurchaseOrder", o.getId());
+    confirm(purchaseOrder);
+    if (!"APPROVED".equals(purchaseOrder.getPaymentStatus())) {
+      movement(purchaseOrder, null, "IN", purchaseOrder.getTotal(), "Recebimento de pedido");
+      purchaseOrder.setPaymentStatus("APPROVED");
+      auditService.record("RECEIVE", "PurchaseOrder", purchaseOrder.getId());
     }
-    return view(o);
+    return view(purchaseOrder);
   }
 
   public OrderView simulate(String id) {
     if (!environment.acceptsProfiles(org.springframework.core.env.Profiles.of("dev", "test")))
       throw new ApiException(403, "Simulação indisponível");
-    var o = lock(id);
-    if ("INSTALLMENTS".equals(o.getPaymentMethod())) {
-      confirm(o);
-      if (o.getTotal().signum() > 0) o.setPaymentStatus("AUTHORIZED");
-      return view(o);
+    var purchaseOrder = lock(id);
+    if ("INSTALLMENTS".equals(purchaseOrder.getPaymentMethod())) {
+      confirm(purchaseOrder);
+      if (purchaseOrder.getTotal().signum() > 0) purchaseOrder.setPaymentStatus("AUTHORIZED");
+      return view(purchaseOrder);
     }
     return receive(id);
   }
 
   public OrderView cancel(String id) {
-    var o = lock(id);
-    if ("CANCELLED".equals(o.getStatus())) return view(o);
-    if ("FINISHED".equals(o.getStatus()))
+    var purchaseOrder = lock(id);
+    if ("CANCELLED".equals(purchaseOrder.getStatus())) return view(purchaseOrder);
+    if ("FINISHED".equals(purchaseOrder.getStatus()))
       throw ApiException.conflict("Pedido finalizado é terminal");
-    if ("APPLIED".equals(o.getStockEffect())) {
+    if ("APPLIED".equals(purchaseOrder.getStockEffect())) {
       var lines =
-          items.findByOrderIdOrderById(o.getId()).stream()
-              .sorted(Comparator.comparing(i -> i.getProduct().getId()))
+          orderItemRepository.findByOrderIdOrderById(purchaseOrder.getId()).stream()
+              .sorted(Comparator.comparing(orderItem -> orderItem.getProduct().getId()))
               .toList();
-      for (var i : lines) {
-        var p = products.lockById(i.getProduct().getId()).orElseThrow(ApiException::missing);
-        p.setStock(Math.addExact(p.getStock(), i.getQuantity()));
-        inventory(p, o, i.getQuantity(), "CANCELLATION_IN");
+      for (var orderItem : lines) {
+        var product =
+            productRepository
+                .lockById(orderItem.getProduct().getId())
+                .orElseThrow(ApiException::missing);
+        product.setStock(Math.addExact(product.getStock(), orderItem.getQuantity()));
+        inventory(product, purchaseOrder, orderItem.getQuantity(), "CANCELLATION_IN");
       }
-      o.setStockEffect("REVERSED");
+      purchaseOrder.setStockEffect("REVERSED");
     }
-    var cash = received(o);
+    var cash = received(purchaseOrder);
     if (cash.signum() > 0) {
-      movement(o, null, "OUT", cash, "Estorno de cancelamento");
-      o.setPaymentStatus("REFUNDED");
+      movement(purchaseOrder, null, "OUT", cash, "Estorno de cancelamento");
+      purchaseOrder.setPaymentStatus("REFUNDED");
     } else {
-      o.setPaymentStatus("CANCELLED");
+      purchaseOrder.setPaymentStatus("CANCELLED");
     }
-    installments.findByOrderIdOrderByNumber(o.getId()).stream()
-        .filter(i -> "PENDING".equals(i.getStatus()))
-        .forEach(i -> i.setStatus("CANCELLED"));
-    transition(o, "CANCELLED");
-    return view(o);
+    installmentRepository.findByOrderIdOrderByNumber(purchaseOrder.getId()).stream()
+        .filter(installment -> "PENDING".equals(installment.getStatus()))
+        .forEach(installment -> installment.setStatus("CANCELLED"));
+    transition(purchaseOrder, "CANCELLED");
+    return view(purchaseOrder);
   }
 
   public OrderView payInstallment(String id) {
-    var found = installments.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    var o = lock(found.getOrder().getId().toString());
-    var i = installments.lockById(found.getId()).orElseThrow(ApiException::missing);
-    if ("CANCELLED".equals(o.getStatus()) || "CANCELLED".equals(i.getStatus()))
+    var found =
+        installmentRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    var purchaseOrder = lock(found.getOrder().getId().toString());
+    var installment =
+        installmentRepository.lockById(found.getId()).orElseThrow(ApiException::missing);
+    if ("CANCELLED".equals(purchaseOrder.getStatus())
+        || "CANCELLED".equals(installment.getStatus()))
       throw ApiException.conflict("Parcela cancelada");
-    if ("PAID".equals(i.getStatus())) return view(o);
-    i.setStatus("PAID");
-    i.setPaidAt(Instant.now());
-    movement(o, i, "IN", i.getAmount(), "Recebimento de parcela " + i.getNumber());
-    if (installments.findByOrderIdOrderByNumber(o.getId()).stream()
-        .allMatch(x -> "PAID".equals(x.getStatus()))) o.setPaymentStatus("APPROVED");
-    audit.record("PAY_INSTALLMENT", "Installment", i.getId());
-    return view(o);
+    if ("PAID".equals(installment.getStatus())) return view(purchaseOrder);
+    installment.setStatus("PAID");
+    installment.setPaidAt(Instant.now());
+    movement(
+        purchaseOrder,
+        installment,
+        "IN",
+        installment.getAmount(),
+        "Recebimento de parcela " + installment.getNumber());
+    if (installmentRepository.findByOrderIdOrderByNumber(purchaseOrder.getId()).stream()
+        .allMatch(candidateInstallment -> "PAID".equals(candidateInstallment.getStatus())))
+      purchaseOrder.setPaymentStatus("APPROVED");
+    auditService.record("PAY_INSTALLMENT", "Installment", installment.getId());
+    return view(purchaseOrder);
   }
 }

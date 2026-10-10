@@ -46,9 +46,13 @@ public final class CatalogDtos {
 
   public record PageView<T>(
       List<T> content, int page, int size, long totalElements, int totalPages) {
-    public static <T> PageView<T> from(org.springframework.data.domain.Page<T> p) {
+    public static <T> PageView<T> from(org.springframework.data.domain.Page<T> page) {
       return new PageView<>(
-          p.getContent(), p.getNumber(), p.getSize(), p.getTotalElements(), p.getTotalPages());
+          page.getContent(),
+          page.getNumber(),
+          page.getSize(),
+          page.getTotalElements(),
+          page.getTotalPages());
     }
   }
 

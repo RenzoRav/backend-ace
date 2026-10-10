@@ -6,143 +6,150 @@ import br.com.florir.exception.ApiException;
 import br.com.florir.model.*;
 import br.com.florir.repository.*;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class CampaignService {
-  private final CouponRepository coupons;
-  private final PromotionRepository promotions;
-  private final ProductPromotionRepository links;
-  private final ProductRepository products;
-  private final InterestRateRepository rates;
-  private final PurchaseOrderRepository orders;
-  private final AuditService audit;
+  private final CouponRepository couponRepository;
+  private final PromotionRepository promotionRepository;
+  private final ProductPromotionRepository productPromotionRepository;
+  private final ProductRepository productRepository;
+  private final InterestRateRepository interestRateRepository;
+  private final PurchaseOrderRepository purchaseOrderRepository;
+  private final AuditService auditService;
 
-  public CampaignService(
-      CouponRepository c,
-      PromotionRepository p,
-      ProductPromotionRepository l,
-      ProductRepository pr,
-      InterestRateRepository r,
-      PurchaseOrderRepository o,
-      AuditService a) {
-    coupons = c;
-    promotions = p;
-    links = l;
-    products = pr;
-    rates = r;
-    orders = o;
-    audit = a;
-  }
-
-  public CouponView view(Coupon c) {
+  public CouponView view(Coupon coupon) {
     return new CouponView(
-        c.getId().toString(),
-        c.getCode(),
-        c.getType(),
-        c.getValue(),
-        c.getValidFrom(),
-        c.getValidUntil(),
-        c.getUsageLimit(),
-        orders.countByCouponIdAndStatusNot(c.getId(), "CANCELLED"));
+        coupon.getId().toString(),
+        coupon.getCode(),
+        coupon.getType(),
+        coupon.getValue(),
+        coupon.getValidFrom(),
+        coupon.getValidUntil(),
+        coupon.getUsageLimit(),
+        purchaseOrderRepository.countByCouponIdAndStatusNot(coupon.getId(), "CANCELLED"));
   }
 
-  public PromotionView view(Promotion p) {
+  public PromotionView view(Promotion promotion) {
     return new PromotionView(
-        p.getId().toString(),
-        p.getName(),
-        p.getPercent(),
-        p.getValidFrom(),
-        p.getValidUntil(),
-        links.findByPromotionId(p.getId()).stream()
-            .map(l -> l.getProduct().getId().toString())
+        promotion.getId().toString(),
+        promotion.getName(),
+        promotion.getPercent(),
+        promotion.getValidFrom(),
+        promotion.getValidUntil(),
+        productPromotionRepository.findByPromotionId(promotion.getId()).stream()
+            .map(productPromotion -> productPromotion.getProduct().getId().toString())
             .toList());
   }
 
   @Transactional(readOnly = true)
   public PageView<CouponView> coupons(int page, int size) {
-    return PageView.from(coupons.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(couponRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
   @Transactional(readOnly = true)
   public PageView<PromotionView> promotions(int page, int size) {
-    return PageView.from(promotions.findAll(CatalogService.page(page, size)).map(this::view));
+    return PageView.from(
+        promotionRepository.findAll(CatalogService.page(page, size)).map(this::view));
   }
 
-  public CouponView coupon(String id, CouponInput d) {
-    if (d.validUntil().isBefore(d.validFrom())
-        || ("PERCENT".equals(d.type()) && d.value().compareTo(new java.math.BigDecimal("100")) > 0))
+  public CouponView coupon(String id, CouponInput couponInput) {
+    if (couponInput.validUntil().isBefore(couponInput.validFrom())
+        || ("PERCENT".equals(couponInput.type())
+            && couponInput.value().compareTo(new java.math.BigDecimal("100")) > 0))
       throw new ApiException(400, "Período ou percentual inválido");
-    var c =
+    var coupon =
         id == null
             ? new Coupon()
-            : coupons.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    c.setCode(d.code().strip().toUpperCase(Locale.ROOT));
-    c.setType(d.type());
-    c.setValue(d.value());
-    c.setValidFrom(d.validFrom());
-    c.setValidUntil(d.validUntil());
-    c.setUsageLimit(d.usageLimit());
-    coupons.save(c);
-    audit.record(id == null ? "CREATE" : "UPDATE", "Coupon", c.getId());
-    return view(c);
+            : couponRepository.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    coupon.setCode(couponInput.code().strip().toUpperCase(Locale.ROOT));
+    coupon.setType(couponInput.type());
+    coupon.setValue(couponInput.value());
+    coupon.setValidFrom(couponInput.validFrom());
+    coupon.setValidUntil(couponInput.validUntil());
+    coupon.setUsageLimit(couponInput.usageLimit());
+    couponRepository.save(coupon);
+    auditService.record(id == null ? "CREATE" : "UPDATE", "Coupon", coupon.getId());
+    return view(coupon);
   }
 
   public void deleteCoupon(String id) {
-    var c = coupons.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    audit.record("DELETE", "Coupon", c.getId());
-    coupons.delete(c);
+    var coupon =
+        couponRepository.lockById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    auditService.record("DELETE", "Coupon", coupon.getId());
+    couponRepository.delete(coupon);
   }
 
-  public PromotionView promotion(String id, PromotionInput d) {
-    if (d.validUntil().isBefore(d.validFrom())) throw new ApiException(400, "Período inválido");
-    var p =
+  public PromotionView promotion(String id, PromotionInput promotionInput) {
+    if (promotionInput.validUntil().isBefore(promotionInput.validFrom()))
+      throw new ApiException(400, "Período inválido");
+    var promotion =
         id == null
             ? new Promotion()
-            : promotions.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    p.setName(d.name().strip());
-    p.setPercent(d.percent());
-    p.setValidFrom(d.validFrom());
-    p.setValidUntil(d.validUntil());
-    promotions.save(p);
+            : promotionRepository
+                .findById(CatalogService.id(id))
+                .orElseThrow(ApiException::missing);
+    promotion.setName(promotionInput.name().strip());
+    promotion.setPercent(promotionInput.percent());
+    promotion.setValidFrom(promotionInput.validFrom());
+    promotion.setValidUntil(promotionInput.validUntil());
+    promotionRepository.save(promotion);
     if (id != null) {
-      links.deleteAll(links.findByPromotionId(p.getId()));
-      links.flush();
+      productPromotionRepository.deleteAll(
+          productPromotionRepository.findByPromotionId(promotion.getId()));
+      productPromotionRepository.flush();
     }
-    for (String productId : new LinkedHashSet<>(d.productIds())) {
-      var l = new ProductPromotion();
-      l.setProduct(
-          products.findById(CatalogService.id(productId)).orElseThrow(ApiException::missing));
-      l.setPromotion(p);
-      links.save(l);
+    for (String productId : new LinkedHashSet<>(promotionInput.productIds())) {
+      var productPromotion = new ProductPromotion();
+      productPromotion.setProduct(
+          productRepository
+              .findById(CatalogService.id(productId))
+              .orElseThrow(ApiException::missing));
+      productPromotion.setPromotion(promotion);
+      productPromotionRepository.save(productPromotion);
     }
-    audit.record(id == null ? "CREATE" : "UPDATE", "Promotion", p.getId());
-    return view(p);
+    auditService.record(id == null ? "CREATE" : "UPDATE", "Promotion", promotion.getId());
+    return view(promotion);
   }
 
   public void deletePromotion(String id) {
-    var p = promotions.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
-    links.deleteAll(links.findByPromotionId(p.getId()));
-    audit.record("DELETE", "Promotion", p.getId());
-    promotions.delete(p);
+    var promotion =
+        promotionRepository.findById(CatalogService.id(id)).orElseThrow(ApiException::missing);
+    productPromotionRepository.deleteAll(
+        productPromotionRepository.findByPromotionId(promotion.getId()));
+    auditService.record("DELETE", "Promotion", promotion.getId());
+    promotionRepository.delete(promotion);
   }
 
   @Transactional(readOnly = true)
   public List<RateView> rates() {
-    return rates.findAll(Sort.by("installmentCount")).stream()
-        .map(r -> new RateView(r.getId().toString(), r.getInstallmentCount(), r.getPercent()))
+    return interestRateRepository.findAll(Sort.by("installmentCount")).stream()
+        .map(
+            interestRate ->
+                new RateView(
+                    interestRate.getId().toString(),
+                    interestRate.getInstallmentCount(),
+                    interestRate.getPercent()))
         .toList();
   }
 
-  public RateView rate(RateInput d) {
-    var r = rates.findByInstallmentCount(d.installmentCount()).orElseGet(InterestRate::new);
-    r.setInstallmentCount(d.installmentCount());
-    r.setPercent(d.percent());
-    rates.save(r);
-    audit.record("UPDATE", "InterestRate", r.getId());
-    return new RateView(r.getId().toString(), r.getInstallmentCount(), r.getPercent());
+  public RateView rate(RateInput rateInput) {
+    var interestRate =
+        interestRateRepository
+            .findByInstallmentCount(rateInput.installmentCount())
+            .orElseGet(InterestRate::new);
+    interestRate.setInstallmentCount(rateInput.installmentCount());
+    interestRate.setPercent(rateInput.percent());
+    interestRateRepository.save(interestRate);
+    auditService.record("UPDATE", "InterestRate", interestRate.getId());
+    return new RateView(
+        interestRate.getId().toString(),
+        interestRate.getInstallmentCount(),
+        interestRate.getPercent());
   }
 }

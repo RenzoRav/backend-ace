@@ -14,15 +14,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-  private final AuthService auth;
-  private final ActorService actor;
+  private final AuthService authService;
+  private final ActorService actorService;
   private final boolean secure;
 
   public AuthController(
-      AuthService a, ActorService actor, @Value("$" + "{florir.cookie.secure}") boolean s) {
-    auth = a;
-    this.actor = actor;
-    secure = s;
+      AuthService authService,
+      ActorService actorService,
+      @Value("$" + "{florir.cookie.secure}") boolean secureCookie) {
+    this.authService = authService;
+    this.actorService = actorService;
+    secure = secureCookie;
   }
 
   private String role(String realm) {
@@ -48,44 +50,46 @@ public class AuthController {
         .toString();
   }
 
-  private String raw(String realm, HttpServletRequest req) {
-    if (req.getCookies() == null) return null;
-    for (var c : req.getCookies()) if (cookieName(realm).equals(c.getName())) return c.getValue();
+  private String raw(String realm, HttpServletRequest request) {
+    if (request.getCookies() == null) return null;
+    for (var cookie : request.getCookies())
+      if (cookieName(realm).equals(cookie.getName())) return cookie.getValue();
     return null;
   }
 
-  private ResponseEntity<Session> result(String realm, AuthService.Result r, int status) {
+  private ResponseEntity<Session> result(
+      String realm, AuthService.Result authenticationResult, int status) {
     return ResponseEntity.status(status)
-        .header(HttpHeaders.SET_COOKIE, cookie(realm, r.refreshToken(), 604800))
-        .body(r.session());
+        .header(HttpHeaders.SET_COOKIE, cookie(realm, authenticationResult.refreshToken(), 604800))
+        .body(authenticationResult.session());
   }
 
   @PostMapping("/{realm}/login")
   ResponseEntity<Session> login(@PathVariable String realm, @Valid @RequestBody Login data) {
-    return result(realm, auth.login(role(realm), data), 200);
+    return result(realm, authService.login(role(realm), data), 200);
   }
 
   @PostMapping("/customer/register")
   ResponseEntity<Session> register(@Valid @RequestBody Register data) {
-    return result("customer", auth.register(data), 201);
+    return result("customer", authService.register(data), 201);
   }
 
   @PostMapping("/{realm}/refresh")
-  ResponseEntity<Session> refresh(@PathVariable String realm, HttpServletRequest req) {
-    return result(realm, auth.refresh(role(realm), raw(realm, req)), 200);
+  ResponseEntity<Session> refresh(@PathVariable String realm, HttpServletRequest request) {
+    return result(realm, authService.refresh(role(realm), raw(realm, request)), 200);
   }
 
   @PostMapping("/{realm}/logout")
-  ResponseEntity<Void> logout(@PathVariable String realm, HttpServletRequest req) {
-    auth.logout(role(realm), raw(realm, req));
+  ResponseEntity<Void> logout(@PathVariable String realm, HttpServletRequest request) {
+    authService.logout(role(realm), raw(realm, request));
     return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(realm, "", 0)).build();
   }
 
   @PostMapping("/{realm}/password")
   ResponseEntity<Void> password(
       @PathVariable String realm, @Valid @RequestBody PasswordChange data) {
-    if (!role(realm).equals(actor.role())) throw new ApiException(403, "Acesso negado");
-    auth.changePassword(role(realm), actor.accountId(), data);
+    if (!role(realm).equals(actorService.role())) throw new ApiException(403, "Acesso negado");
+    authService.changePassword(role(realm), actorService.accountId(), data);
     return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie(realm, "", 0)).build();
   }
 }

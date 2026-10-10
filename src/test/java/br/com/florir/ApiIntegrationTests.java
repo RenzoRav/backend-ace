@@ -15,7 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ApiIntegrationTests {
   @LocalServerPort int port;
-  final HttpClient http =
+  final HttpClient httpClient =
       HttpClient.newBuilder()
           .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
           .build();
@@ -25,38 +25,41 @@ class ApiIntegrationTests {
   record Reply(int status, String body) {}
 
   Reply request(String method, String route, String json, String token) throws Exception {
-    var b =
+    var requestBuilder =
         HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1" + route))
             .header("Content-Type", "application/json")
             .header("Origin", "http://localhost:3000");
-    if (token != null) b.header("Authorization", "Bearer " + token);
-    var r =
-        http.send(
-            b.method(
+    if (token != null) requestBuilder.header("Authorization", "Bearer " + token);
+    var response =
+        httpClient.send(
+            requestBuilder
+                .method(
                     method,
                     json == null
                         ? HttpRequest.BodyPublishers.noBody()
                         : HttpRequest.BodyPublishers.ofString(json))
                 .build(),
             HttpResponse.BodyHandlers.ofString());
-    return new Reply(r.statusCode(), r.body());
+    return new Reply(response.statusCode(), response.body());
   }
 
-  String value(String body, String key) {
-    var m = java.util.regex.Pattern.compile("\\\"" + key + "\\\":\\\"([^\\\"]+)\\\"").matcher(body);
-    assertTrue(m.find(), body);
-    return m.group(1);
+  String value(String body, String fieldName) {
+    var matcher =
+        java.util.regex.Pattern.compile("\\\"" + fieldName + "\\\":\\\"([^\\\"]+)\\\"")
+            .matcher(body);
+    assertTrue(matcher.find(), body);
+    return matcher.group(1);
   }
 
   String managerLogin() throws Exception {
-    var r =
+    var response =
         request(
             "POST",
             "/auth/manager/login",
             "{\"email\":\"gestora@florir.local\",\"password\":\"FlorirDev123!\"}",
             null);
-    assertEquals(200, r.status(), r.body());
-    return value(r.body(), "accessToken");
+    assertEquals(200, response.status(), response.body());
+    return value(response.body(), "accessToken");
   }
 
   @Test
@@ -86,9 +89,9 @@ class ApiIntegrationTests {
     assertEquals(201, signup.status(), signup.body());
     customer = value(signup.body(), "accessToken");
     assertEquals(403, request("GET", "/manager/products", null, customer).status());
-    var me = request("GET", "/customer/me", null, customer);
-    assertEquals(200, me.status(), me.body());
-    assertFalse(me.body().contains("password"));
+    var customerProfile = request("GET", "/customer/me", null, customer);
+    assertEquals(200, customerProfile.status(), customerProfile.body());
+    assertFalse(customerProfile.body().contains("password"));
     assertEquals(200, request("POST", "/auth/customer/logout", "{}", customer).status());
     assertEquals(401, request("GET", "/customer/me", null, customer).status());
   }
@@ -100,10 +103,10 @@ class ApiIntegrationTests {
     var brand = request("POST", "/manager/brands", "{\"name\":\"Marca " + suffix + "\"}", manager);
     assertEquals(201, brand.status(), brand.body());
     String brandId = value(brand.body(), "id");
-    var cat =
+    var categoryResponse =
         request("POST", "/manager/categories", "{\"name\":\"Categoria " + suffix + "\"}", manager);
-    assertEquals(201, cat.status(), cat.body());
-    String catId = value(cat.body(), "id");
+    assertEquals(201, categoryResponse.status(), categoryResponse.body());
+    String categoryId = value(categoryResponse.body(), "id");
     var product =
         request(
             "POST",
@@ -111,7 +114,7 @@ class ApiIntegrationTests {
             "{\"name\":\"Produto\",\"description\":\"Teste\",\"price\":100,\"cost\":50,\"stock\":10,\"minimumStock\":2,\"brandId\":\""
                 + brandId
                 + "\",\"categoryId\":\""
-                + catId
+                + categoryId
                 + "\",\"active\":true}",
             manager);
     assertEquals(201, product.status(), product.body());
