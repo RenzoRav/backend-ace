@@ -10,4 +10,12 @@ public interface InstallmentRepository extends JpaRepository<Installment, Long> 
       @org.springframework.data.repository.query.Param("id") Long id);
 
   java.util.List<Installment> findByOrderIdOrderByNumber(Long id);
+
+  org.springframework.data.domain.Page<Installment> findByStatus(
+      String status, org.springframework.data.domain.Pageable page);
+
+  org.springframework.data.domain.Page<Installment> findByStatusAndDueDateBefore(
+      String status, java.time.LocalDate date, org.springframework.data.domain.Pageable page);
+
+  long countByStatusAndDueDateBefore(String status, java.time.LocalDate date);
 }
