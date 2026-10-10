@@ -79,8 +79,27 @@ public class CatalogService {
   }
 
   @Transactional(readOnly = true)
-  public PageView<PublicProduct> catalog(int page, int size) {
-    return PageView.from(products.findByActiveTrue(page(page, size)).map(this::publicView));
+  public PageView<PublicProduct> catalog(
+      int page, int size, String search, String brandId, String categoryId) {
+    org.springframework.data.jpa.domain.Specification<Product> spec =
+        (root, query, builder) -> builder.isTrue(root.get("active"));
+    if (search != null && !search.isBlank()) {
+      if (search.length() > 255) throw new ApiException(400, "Pesquisa muito longa");
+      String value = "%" + search.strip().toLowerCase(Locale.ROOT) + "%";
+      spec =
+          spec.and((root, query, builder) -> builder.like(builder.lower(root.get("name")), value));
+    }
+    if (brandId != null) {
+      Long brand = id(brandId);
+      spec = spec.and((root, query, builder) -> builder.equal(root.get("brand").get("id"), brand));
+    }
+    if (categoryId != null) {
+      Long category = id(categoryId);
+      spec =
+          spec.and(
+              (root, query, builder) -> builder.equal(root.get("category").get("id"), category));
+    }
+    return PageView.from(products.findAll(spec, page(page, size)).map(this::publicView));
   }
 
   @Transactional(readOnly = true)
@@ -186,5 +205,11 @@ public class CatalogService {
     var c = categories.findById(id(id)).orElseThrow(ApiException::missing);
     audit.record("DELETE", "Category", c.getId());
     categories.delete(c);
+  }
+
+  @Transactional(readOnly = true)
+  public PublicProduct detail(String id) {
+    return publicView(
+        products.findById(id(id)).filter(Product::getActive).orElseThrow(ApiException::missing));
   }
 }

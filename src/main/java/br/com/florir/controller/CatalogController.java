@@ -18,8 +18,12 @@ public class CatalogController {
 
   @GetMapping("/catalog/products")
   PageView<PublicProduct> catalog(
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-    return service.catalog(page, size);
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(required = false) String search,
+      @RequestParam(required = false) String brandId,
+      @RequestParam(required = false) String categoryId) {
+    return service.catalog(page, size, search, brandId, categoryId);
   }
 
   @GetMapping({"/catalog/brands", "/manager/brands"})
@@ -97,5 +101,10 @@ public class CatalogController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   void deleteCategory(@PathVariable String id) {
     service.deleteCategory(id);
+  }
+
+  @GetMapping("/catalog/products/{id}")
+  PublicProduct detail(@PathVariable String id) {
+    return service.detail(id);
   }
 }
