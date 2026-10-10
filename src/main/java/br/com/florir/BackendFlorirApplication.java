@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BackendFlorirApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(BackendFlorirApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(BackendFlorirApplication.class, args);
+  }
 }
