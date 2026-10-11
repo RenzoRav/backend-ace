@@ -1,8 +1,8 @@
-# Backend Florir
+# Backend Loja
 
-Projeto criado em **C:\Users\renzo\Documents\backend-florir**.
+Projeto criado em **C:\Users\renzo\Documents\backend-loja**.
 
-API Spring Boot **4.1.1**, Java **21**, Gradle Wrapper **9.7.1**, PostgreSQL, Flyway e Spring Security. Camadas: **dto**, **model**, **controller**, **repository** e **service**, além de config/security/exception. A pasta é independente do frontend-florir; os dados do frontend local não são importados automaticamente.
+API Spring Boot **4.1.1**, Java **21**, Gradle Wrapper **9.7.1**, PostgreSQL, Flyway e Spring Security. Camadas: **dto**, **model**, **controller**, **repository** e **service**, além de config/security/exception. A pasta é independente do frontend-loja; os dados do frontend local não são importados automaticamente.
 
 ## Iniciar neste computador
 
@@ -14,7 +14,7 @@ Abra o PowerShell nesta pasta e execute:
 
 O script usa o PostgreSQL 18 já instalado, em uma **instância isolada na porta 5433**. Os dados ficam em .runtime/postgres; a instalação/banco anterior na porta 5432 permanece intacta. A API inicia em **http://localhost:8080**. Verificação pública: **http://localhost:8080/api/v1/health**.
 
-Conta de gestora no perfil **dev**: **gestora@florir.local** / **FlorirDev123!**. Não há cadastro público de gestoras. Cliente se cadastra por POST /api/v1/auth/customer/register. Senhas são armazenadas com BCrypt, nunca retornadas nos DTOs. Os bancos florir e florir_test usam florir / florir_dev neste ambiente local.
+Conta de gestora no perfil **dev**: **gestora@loja.local** / **LojaDev123!**. Não há cadastro público de gestoras. Cliente se cadastra por POST /api/v1/auth/customer/register. Senhas são armazenadas com BCrypt, nunca retornadas nos DTOs. Os bancos loja e loja_test usam loja / loja_dev neste ambiente local.
 
 Para parar só a API: .\stop-backend.ps1. O script não apaga dados nem para a instalação original do PostgreSQL.
 
@@ -26,7 +26,7 @@ Para parar só a API: .\stop-backend.ps1. O script não apaga dados nem para a i
 .\gradlew.bat bootRun --args="--spring.profiles.active=dev"
 ```
 
-Os testes usam **PostgreSQL real** em 127.0.0.1:5433/florir_test, não H2. Antes de testar, inicie o banco com start-backend.ps1 ou com Docker. Em outra máquina, configure um PostgreSQL local ou execute **docker compose up -d**. Não execute o contêiner na porta 5433 enquanto a instância local já estiver usando essa porta. O Compose usa PostgreSQL 17 e cria os bancos florir e florir_test na primeira inicialização de um volume vazio. URL/credenciais dos testes podem ser sobrescritas por variáveis SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
+Os testes usam **PostgreSQL real** em 127.0.0.1:5433/loja_test, não H2. Antes de testar, inicie o banco com start-backend.ps1 ou com Docker. Em outra máquina, configure um PostgreSQL local ou execute **docker compose up -d**. Não execute o contêiner na porta 5433 enquanto a instância local já estiver usando essa porta. O Compose usa PostgreSQL 17 e cria os bancos loja e loja_test na primeira inicialização de um volume vazio. URL/credenciais dos testes podem ser sobrescritas por variáveis SPRING_DATASOURCE_URL/USERNAME/PASSWORD.
 
 ## API
 
@@ -68,3 +68,11 @@ Não se usa @Data nas entidades, para evitar equals/hashCode/toString sobre asso
 Variáveis e parâmetros usam nomes completos em produção e nos testes: manager, customerAccount, product, purchaseOrder, installment, managerRepository, passwordEncoder, request e response. Identificadores de protocolo/API como id e url foram preservados. SourceConventionsTest verifica a configuração do Lombok, os acessores gerados e nomes de variáveis/parâmetros, além da suíte funcional PostgreSQL.
 
 Referências: https://projectlombok.org/setup/gradle e https://projectlombok.org/features/GetterSetter.
+
+## Identificadores neutros
+
+A loja ainda nao possui nome comercial. BackendLoja, backend-loja e br.com.loja sao somente identificadores tecnicos. Configuracoes usam o prefixo loja; cookies, emissor/audiencia JWT, bancos e credenciais de demonstracao usam nomes neutros. Projeto em C:/Users/renzo/Documents/backend-loja.
+
+Os bancos locais loja e loja_test foram copiados dos bancos anteriores, preservando cadastros e movimentos. Somente a conta de demonstracao foi ajustada para gestora@loja.local / LojaDev123!, com revogacao de tokens anteriores. Backups e bancos anteriores permanecem para restauracao.
+
+A migracao SQL V1 ja aplicada conserva seu nome e conteudo historicos para preservar o checksum validado pelo Flyway. Isso nao define a marca da loja. Historico Git e enderecos de repositorios existentes tambem nao sao reescritos nesta refatoracao.

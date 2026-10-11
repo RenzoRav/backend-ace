@@ -1,6 +1,6 @@
-# Backend Florir
+# Backend Loja
 
-Local: C:\Users\renzo\Documents\backend-florir. Projeto independente do frontend.
+Local: C:\Users\renzo\Documents\backend-loja. Projeto independente do frontend.
 
 Pedido: Spring Boot, Gradle, PostgreSQL, DTO/model/controller/repository/service. Login real; pagamento e WhatsApp simulados.
 

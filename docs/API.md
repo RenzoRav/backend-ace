@@ -1,4 +1,4 @@
-# API Florir
+# API Loja
 
 Base: http://localhost:8080/api/v1. JSON. IDs string, dinheiro decimal. Erros 400/401/403/404/409. Erros de negócio retornam message; filtro de autenticação pode retornar corpo vazio. Listagens da gestora: page=0&size=20 (size até 100), envelope content/page/size/totalElements/totalPages.
 
@@ -14,7 +14,7 @@ Resposta: accessToken, tokenType=Bearer, expiresIn=900, role, accountId, name. R
 
 ```powershell
 $headers = @{ Origin = 'http://localhost:3000' }
-$session = Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/v1/auth/manager/login' -ContentType 'application/json' -Headers $headers -Body '{"email":"gestora@florir.local","password":"FlorirDev123!"}' -SessionVariable cookies
+$session = Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/v1/auth/manager/login' -ContentType 'application/json' -Headers $headers -Body '{"email":"gestora@loja.local","password":"LojaDev123!"}' -SessionVariable cookies
 $private = @{ Authorization = "Bearer $($session.accessToken)" }
 Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/manager/products' -Headers $private
 ```
@@ -47,7 +47,7 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/manager/products' -Headers 
   "paymentMethod": "INSTALLMENTS",
   "installmentCount": 3,
   "delivery": false,
-  "couponCode": "FLORIR10",
+  "couponCode": "LOJA10",
   "items": [{ "productId": "1", "quantity": 2 }]
 }
 ```

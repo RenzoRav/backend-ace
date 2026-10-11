@@ -1,6 +1,6 @@
 # Registro de implementação e verificação
 
-Local final: C:\Users\renzo\Documents\backend-florir. Branch: codex/backend-spring-boot. Base: fb52699 (scaffold).
+Local final: C:\Users\renzo\Documents\backend-loja. Branch: codex/backend-spring-boot. Base: fb52699 (scaffold).
 
 Ruling: executar o backend mediante os pedidos repetidos de criação — não abrir nova rodada de aprovação — entrega API real em Documentos.
 Ruling: projeto separado do frontend — usuário pediu backend visível em Documentos — integração anterior do frontend não é alegada nesta entrega.
@@ -12,7 +12,7 @@ Testes RED/GREEN: calculadora/telefone; API de autenticação e ciclo financeiro
 
 Revisão independente somente leitura: quatro achados tratados. Login/troca de senha/refresh serializam pela conta; refresh carrega versão da credencial. Logout com cookie revogado/expirado não derruba login futuro. Autorização simulada parcelada usa AUTHORIZED, diferente de quitação; cancelamento sem recebimento usa CANCELLED. Pedido gratuito é aprovado sem caixa/parcelas.
 
-Testes de integração também verificam: duas confirmações concorrentes não vendem estoque inexistente; idempotência de checkout/recebimentos/cancelamento; snapshots; pagamento parcial e estorno exato; isolamento de cliente; benefício anual único; cobranças só após declaração explícita. Testes usam banco florir_test, API local usa banco florir.
+Testes de integração também verificam: duas confirmações concorrentes não vendem estoque inexistente; idempotência de checkout/recebimentos/cancelamento; snapshots; pagamento parcial e estorno exato; isolamento de cliente; benefício anual único; cobranças só após declaração explícita. Testes usam banco loja_test, API local usa banco loja.
 
 Diagramas de referência em Downloads:
 01_casos_de_uso.drawio SHA256 69F810C5BEA1C1480D0158BA731CA5A68641B9C183C8D202EBEA231691891BB0
@@ -31,3 +31,11 @@ Nomenclatura: parâmetros de construtor, campos de dependências, variáveis loc
 
 TDD: 4 testes de convenção inicialmente resultaram em 3 falhas esperadas; configuração/modelos/nomenclatura passaram após a refatoração. Baseline de 19 testes preservado em .evidence/lombok-names, com ZIP original e SHA256. Suíte final inclui 23 testes.
 Revisão final: catId foi detectado no teste de API, reproduzido por teste de convenção RED e renomeado para categoryId. Verificação limpa final: 23 testes, zero falhas, bootJar gerado.
+
+## Identificadores neutros
+
+A loja ainda nao possui nome comercial. BackendLoja, backend-loja e br.com.loja sao somente identificadores tecnicos. Configuracoes usam o prefixo loja; cookies, emissor/audiencia JWT, bancos e credenciais de demonstracao usam nomes neutros. Projeto em C:/Users/renzo/Documents/backend-loja.
+
+Os bancos locais loja e loja_test foram copiados dos bancos anteriores, preservando cadastros e movimentos. Somente a conta de demonstracao foi ajustada para gestora@loja.local / LojaDev123!, com revogacao de tokens anteriores. Backups e bancos anteriores permanecem para restauracao.
+
+A migracao SQL V1 ja aplicada conserva seu nome e conteudo historicos para preservar o checksum validado pelo Flyway. Isso nao define a marca da loja. Historico Git e enderecos de repositorios existentes tambem nao sao reescritos nesta refatoracao.
