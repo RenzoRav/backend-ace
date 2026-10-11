@@ -91,17 +91,22 @@ public class AuthController {
 
   @PostMapping("/customer/register")
   ResponseEntity<Session> register(@Valid @RequestBody Register data) {
-    return result("customer", authService.register(data), 201);
+    var authenticationResult=authService.register(data);
+    securityEventService.record("REGISTER","ALLOWED",authenticationResult.session().accountId(),UUID.randomUUID().toString());
+    return result("customer", authenticationResult, 201);
   }
 
   @PostMapping("/{realm}/refresh")
   ResponseEntity<Session> refresh(@PathVariable String realm, HttpServletRequest request) {
-    return result(realm, authService.refresh(role(realm), raw(realm, request)), 200);
+    var authenticationResult=authService.refresh(role(realm),raw(realm,request));
+    securityEventService.record("REFRESH","ALLOWED",authenticationResult.session().accountId(),UUID.randomUUID().toString());
+    return result(realm,authenticationResult,200);
   }
 
   @PostMapping("/{realm}/logout")
   ResponseEntity<Void> logout(@PathVariable String realm, HttpServletRequest request) {
     authService.logout(role(realm), raw(realm, request));
+    securityEventService.record("LOGOUT","ALLOWED",realm,UUID.randomUUID().toString());
     return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(realm, "", 0)).build();
   }
 
@@ -109,8 +114,12 @@ public class AuthController {
   ResponseEntity<Void> password(
       @PathVariable String realm, @Valid @RequestBody PasswordChange data) {
     if (!role(realm).equals(actorService.role())) throw new ApiException(403, "Acesso negado");
-    authService.changePassword(role(realm), actorService.accountId(), data);
+    var decision=authenticationLimitService.check("password-account",realm+":"+actorService.accountId(),5,Duration.ofMinutes(5));
+    if(!decision.allowed())return ResponseEntity.status(429).header("Retry-After",Long.toString(decision.retryAfterSeconds())).build();
+    try{authService.changePassword(role(realm),actorService.accountId(),data);securityEventService.record("PASSWORD","ALLOWED",realm+":"+actorService.accountId(),UUID.randomUUID().toString());}
+    catch(ApiException exception){securityEventService.record("PASSWORD","DENIED",realm+":"+actorService.accountId(),UUID.randomUUID().toString());throw exception;}
     return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie(realm, "", 0)).build();
   }
 }
+
 

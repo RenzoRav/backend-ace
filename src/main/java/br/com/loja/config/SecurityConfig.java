@@ -4,6 +4,7 @@ import br.com.loja.repository.*;
 import br.com.loja.security.*;
 import br.com.loja.service.AuthenticationLimitService;
 import br.com.loja.service.SecurityEventService;
+import br.com.loja.service.SessionFamilyService;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -65,6 +66,7 @@ public class SecurityConfig {
       HttpSecurity http,
       AuthenticationLimitService authenticationLimitService,
       SecurityEventService securityEventService,
+      SessionFamilyService sessionFamilyService,
       Environment environment,
       ManagerRepository managerRepository,
       CustomerAccountRepository customerAccountRepository,
@@ -98,7 +100,7 @@ public class SecurityConfig {
         .addFilterBefore(new AuthOriginFilter(origin), BearerTokenAuthenticationFilter.class)
         .addFilterBefore(new AuthenticationLimitFilter(authenticationLimitService,securityEventService,environment), BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new CredentialVersionFilter(managerRepository, customerAccountRepository),
+            new CredentialVersionFilter(sessionFamilyService,managerRepository, customerAccountRepository),
             BearerTokenAuthenticationFilter.class);
     return http.build();
   }
@@ -116,5 +118,6 @@ public class SecurityConfig {
     return source;
   }
 }
+
 
 

@@ -26,6 +26,9 @@ public class AuthService {
   private final CustomerRepository customerRepository;
   private final RefreshSessionRepository refreshSessionRepository;
   private final PasswordEncoder passwordEncoder;
+  private final SessionFamilyService sessionFamilyService;
+  private final SessionFamilyRepository sessionFamilyRepository;
+  private final SecurityEventService securityEventService;
   private final JwtEncoder jwtEncoder;
   private final String issuer, audience;
   private final String dummyHash;
@@ -37,6 +40,9 @@ public class AuthService {
       CustomerRepository customerRepository,
       RefreshSessionRepository refreshSessionRepository,
       PasswordEncoder passwordEncoder,
+      SessionFamilyService sessionFamilyService,
+      SessionFamilyRepository sessionFamilyRepository,
+      SecurityEventService securityEventService,
       JwtEncoder jwtEncoder,
       @Value("$" + "{loja.jwt.issuer}") String issuer,
       @Value("$" + "{loja.jwt.audience}") String audience) {
@@ -45,6 +51,9 @@ public class AuthService {
     this.customerRepository = customerRepository;
     this.refreshSessionRepository = refreshSessionRepository;
     this.passwordEncoder = passwordEncoder;
+    this.sessionFamilyService=sessionFamilyService;
+    this.sessionFamilyRepository=sessionFamilyRepository;
+    this.securityEventService=securityEventService;
     this.jwtEncoder = jwtEncoder;
     this.issuer = issuer;
     this.audience = audience;
@@ -103,7 +112,11 @@ public class AuthService {
   }
 
   private Result issue(String role, Long id, String name, long version) {
-    Instant now = Instant.now();
+    return issue(role,id,name,version,sessionFamilyService.create(role,id,Instant.now()));
+  }
+
+  private Result issue(String role,Long id,String name,long version,SessionFamily family){
+    Instant now=Instant.now();
     var claims =
         JwtClaimsSet.builder()
             .issuer(issuer)
@@ -114,6 +127,7 @@ public class AuthService {
             .id(UUID.randomUUID().toString())
             .claim("role", role)
             .claim("credentialVersion", version)
+            .claim("sessionFamilyId",family.getId())
             .build();
     String accessToken =
         jwtEncoder
@@ -127,7 +141,9 @@ public class AuthService {
     refresh.setAccountId(id);
     refresh.setCredentialVersion(version);
     refresh.setTokenHash(hash(refreshToken));
-    refresh.setExpiresAt(now.plusSeconds(604800));
+    refresh.setFamilyId(family.getId());
+    Instant inactivityExpiry=now.plusSeconds(604800);
+    refresh.setExpiresAt(inactivityExpiry.isBefore(family.getAbsoluteExpiresAt())?inactivityExpiry:family.getAbsoluteExpiresAt());
     refreshSessionRepository.save(refresh);
     return new Result(
         new Session(accessToken, "Bearer", 900, role, id.toString(), name), refreshToken);
@@ -147,9 +163,11 @@ public class AuthService {
     return role.equals(refreshSession.getRole())
         && !refreshSession.getRevoked()
         && refreshSession.getExpiresAt().isAfter(Instant.now())
-        && refreshSession.getCredentialVersion() == version;
+        && refreshSession.getCredentialVersion() == version
+        && sessionFamilyService.isActive(refreshSession.getFamilyId(),role,refreshSession.getAccountId(),Instant.now());
   }
 
+  @Transactional(noRollbackFor=ApiException.class)
   public Result refresh(String role, String refreshToken) {
     if (refreshToken == null || refreshToken.isBlank())
       throw new ApiException(401, "Sessão expirada");
@@ -165,21 +183,36 @@ public class AuthService {
               .filter(Manager::getActive)
               .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
       entityManager.refresh(session, LockModeType.PESSIMISTIC_WRITE);
-      if (!validSession(session, role, account.getCredentialVersion()))
+      SessionFamily family=checkFamily(session,role);
+    if (!validSession(session, role, account.getCredentialVersion()))
         throw new ApiException(401, "Sessão expirada");
       session.setRevoked(true);
-      return issue(role, account.getId(), account.getName(), account.getCredentialVersion());
+      return issue(role, account.getId(), account.getName(), account.getCredentialVersion(),family);
     }
     var account =
         customerAccountRepository
             .lockById(session.getAccountId())
             .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
     entityManager.refresh(session, LockModeType.PESSIMISTIC_WRITE);
+    SessionFamily family=checkFamily(session,role);
     if (!validSession(session, role, account.getCredentialVersion()))
       throw new ApiException(401, "Sessão expirada");
     session.setRevoked(true);
     return issue(
-        role, account.getId(), account.getCustomer().getName(), account.getCredentialVersion());
+        role, account.getId(), account.getCustomer().getName(), account.getCredentialVersion(),family);
+  }
+
+  private SessionFamily checkFamily(RefreshSession session,String role){
+    if(session.getFamilyId()==null)throw new ApiException(401,"Sessao expirada");
+    var family=sessionFamilyRepository.lockById(session.getFamilyId()).orElseThrow(()->new ApiException(401,"Sessao expirada"));
+    if(!role.equals(family.getRole())||!session.getAccountId().equals(family.getAccountId()))throw new ApiException(401,"Sessao expirada");
+    if(session.getRevoked()){
+      family.setRevoked(true);
+      securityEventService.record("REPLAY","REVOKED",role+":"+session.getAccountId(),UUID.randomUUID().toString());
+      throw new ApiException(401,"Sessao expirada");
+    }
+    if(family.getRevoked()||!family.getAbsoluteExpiresAt().isAfter(Instant.now()))throw new ApiException(401,"Sessao expirada");
+    return family;
   }
 
   public void logout(String role, String refreshToken) {
@@ -212,6 +245,7 @@ public class AuthService {
       var account = customerAccountRepository.lockById(id).orElseThrow(ApiException::missing);
       account.setCredentialVersion(account.getCredentialVersion() + 1);
     }
+    sessionFamilyRepository.findByRoleAndAccountId(role,id).forEach(family->family.setRevoked(true));
     refreshSessionRepository
         .findByRoleAndAccountId(role, id)
         .forEach(refreshSession -> refreshSession.setRevoked(true));
@@ -232,3 +266,5 @@ public class AuthService {
     revoke(role, id);
   }
 }
+
+
