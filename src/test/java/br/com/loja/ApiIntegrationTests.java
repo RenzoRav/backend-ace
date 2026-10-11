@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.*;
 import java.net.http.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -44,9 +45,7 @@ class ApiIntegrationTests {
   }
 
   String value(String body, String fieldName) {
-    var matcher =
-        java.util.regex.Pattern.compile("\\\"" + fieldName + "\\\":\\\"([^\\\"]+)\\\"")
-            .matcher(body);
+    var matcher = Pattern.compile("\\\"" + fieldName + "\\\":\\\"([^\\\"]+)\\\"").matcher(body);
     assertTrue(matcher.find(), body);
     return matcher.group(1);
   }

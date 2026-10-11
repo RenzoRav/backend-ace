@@ -3,6 +3,7 @@ package br.com.loja.dto;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 public final class CatalogDtos {
   public record NameInput(@NotBlank @Size(max = 255) String name) {}
@@ -46,7 +47,7 @@ public final class CatalogDtos {
 
   public record PageView<T>(
       List<T> content, int page, int size, long totalElements, int totalPages) {
-    public static <T> PageView<T> from(org.springframework.data.domain.Page<T> page) {
+    public static <T> PageView<T> from(Page<T> page) {
       return new PageView<>(
           page.getContent(),
           page.getNumber(),

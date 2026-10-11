@@ -6,6 +6,7 @@ import br.com.loja.exception.ApiException;
 import br.com.loja.model.*;
 import br.com.loja.repository.*;
 import br.com.loja.security.ActorService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,7 +83,7 @@ public class CustomerService {
   }
 
   @Transactional(readOnly = true)
-  public java.util.List<AddressView> addresses() {
+  public List<AddressView> addresses() {
     return customerAddressRepository.findByCustomerId(actorService.customer().getId()).stream()
         .map(this::view)
         .toList();

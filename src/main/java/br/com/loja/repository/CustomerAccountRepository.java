@@ -1,16 +1,18 @@
 package br.com.loja.repository;
 
 import br.com.loja.model.CustomerAccount;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
 
 public interface CustomerAccountRepository extends JpaRepository<CustomerAccount, Long> {
-  @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-  java.util.Optional<CustomerAccount> findByEmail(String email);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<CustomerAccount> findByEmail(String email);
 
   boolean existsByEmail(String email);
 
-  @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select e from CustomerAccount e where e.id = :id")
-  java.util.Optional<CustomerAccount> lockById(
-      @org.springframework.data.repository.query.Param("id") Long id);
+  Optional<CustomerAccount> lockById(@Param("id") Long id);
 }

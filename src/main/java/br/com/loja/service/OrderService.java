@@ -11,6 +11,7 @@ import java.time.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -385,7 +386,7 @@ public class OrderService {
   }
 
   public OrderView simulate(String id) {
-    if (!environment.acceptsProfiles(org.springframework.core.env.Profiles.of("dev", "test")))
+    if (!environment.acceptsProfiles(Profiles.of("dev", "test")))
       throw new ApiException(403, "Simulação indisponível");
     var purchaseOrder = lock(id);
     if ("INSTALLMENTS".equals(purchaseOrder.getPaymentMethod())) {

@@ -2,16 +2,19 @@ package br.com.loja;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import br.com.loja.repository.CustomerAccountRepository;
 import br.com.loja.repository.FinancialMovementRepository;
 import java.math.BigDecimal;
 import java.net.*;
 import java.net.http.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -21,7 +24,7 @@ import tools.jackson.databind.json.JsonMapper;
 class BusinessIntegrationTests {
   @LocalServerPort int port;
   @Autowired FinancialMovementRepository financialMovementRepository;
-  @Autowired br.com.loja.repository.CustomerAccountRepository customerAccountRepository;
+  @Autowired CustomerAccountRepository customerAccountRepository;
   final HttpClient httpClient =
       HttpClient.newBuilder()
           .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
@@ -524,8 +527,7 @@ class BusinessIntegrationTests {
     var claims =
         jsonMapper.readTree(
             new String(
-                Base64.getUrlDecoder().decode(token.split("\\.")[1]),
-                java.nio.charset.StandardCharsets.UTF_8));
+                Base64.getUrlDecoder().decode(token.split("\\.")[1]), StandardCharsets.UTF_8));
     var account =
         customerAccountRepository.findById(Long.valueOf(claims.get("sub").asText())).orElseThrow();
     account.setCredentialVersion(account.getCredentialVersion() + 1);
@@ -620,8 +622,7 @@ class BusinessIntegrationTests {
             .asBoolean());
   }
 
-  @org.springframework.beans.factory.annotation.Autowired
-  org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+  @Autowired JdbcTemplate jdbcTemplate;
 
   @Test
   void productPromotionUsesDiagramCompositePrimaryKey() {

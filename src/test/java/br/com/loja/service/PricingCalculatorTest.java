@@ -3,6 +3,7 @@ package br.com.loja.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class PricingCalculatorTest {
@@ -14,8 +15,7 @@ class PricingCalculatorTest {
     assertEquals(new BigDecimal("182.70"), result.total());
     assertEquals(new BigDecimal("8.70"), result.interest());
     assertEquals(
-        java.util.List.of(
-            new BigDecimal("60.90"), new BigDecimal("60.90"), new BigDecimal("60.90")),
+        List.of(new BigDecimal("60.90"), new BigDecimal("60.90"), new BigDecimal("60.90")),
         PricingCalculator.split(result.total(), 3));
   }
 

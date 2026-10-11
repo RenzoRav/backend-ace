@@ -1,10 +1,14 @@
 package br.com.loja.exception;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import org.springframework.dao.*;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -17,8 +21,8 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler({
     IllegalArgumentException.class,
-    org.springframework.http.converter.HttpMessageNotReadableException.class,
-    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class
   })
   ResponseEntity<Error> invalid(Exception exception) {
     return ResponseEntity.badRequest().body(new Error("Dados inválidos"));
@@ -32,13 +36,13 @@ public class ApiExceptionHandler {
                 exception.getBindingResult().getFieldErrors().stream()
                     .map(
                         fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-                    .collect(java.util.stream.Collectors.joining("; "))));
+                    .collect(Collectors.joining("; "))));
   }
 
   @ExceptionHandler({
     DataIntegrityViolationException.class,
     OptimisticLockingFailureException.class,
-    org.springframework.dao.PessimisticLockingFailureException.class
+    PessimisticLockingFailureException.class
   })
   ResponseEntity<Error> conflict(Exception exception) {
     return ResponseEntity.status(409)

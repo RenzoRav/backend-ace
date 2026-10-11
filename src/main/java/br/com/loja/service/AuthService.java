@@ -4,6 +4,9 @@ import br.com.loja.dto.AuthDtos.*;
 import br.com.loja.exception.ApiException;
 import br.com.loja.model.*;
 import br.com.loja.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.*;
@@ -26,7 +29,7 @@ public class AuthService {
   private final JwtEncoder jwtEncoder;
   private final String issuer, audience;
   private final String dummyHash;
-  @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
+  @PersistenceContext private EntityManager entityManager;
 
   public AuthService(
       ManagerRepository managerRepository,
@@ -161,7 +164,7 @@ public class AuthService {
               .lockById(session.getAccountId())
               .filter(Manager::getActive)
               .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
-      entityManager.refresh(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+      entityManager.refresh(session, LockModeType.PESSIMISTIC_WRITE);
       if (!validSession(session, role, account.getCredentialVersion()))
         throw new ApiException(401, "Sessão expirada");
       session.setRevoked(true);
@@ -171,7 +174,7 @@ public class AuthService {
         customerAccountRepository
             .lockById(session.getAccountId())
             .orElseThrow(() -> new ApiException(401, "Sessão expirada"));
-    entityManager.refresh(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+    entityManager.refresh(session, LockModeType.PESSIMISTIC_WRITE);
     if (!validSession(session, role, account.getCredentialVersion()))
       throw new ApiException(401, "Sessão expirada");
     session.setRevoked(true);
@@ -197,7 +200,7 @@ public class AuthService {
       if (account.isEmpty()) return;
       version = account.get().getCredentialVersion();
     }
-    entityManager.refresh(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+    entityManager.refresh(session, LockModeType.PESSIMISTIC_WRITE);
     if (validSession(session, role, version)) revoke(role, session.getAccountId());
   }
 

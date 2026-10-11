@@ -7,6 +7,7 @@ import br.com.loja.repository.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,7 +71,7 @@ public class CatalogService {
   @Transactional(readOnly = true)
   public PageView<PublicProduct> catalog(
       int page, int size, String search, String brandId, String categoryId) {
-    org.springframework.data.jpa.domain.Specification<Product> productSpecification =
+    Specification<Product> productSpecification =
         (root, query, builder) -> builder.isTrue(root.get("active"));
     if (search != null && !search.isBlank()) {
       if (search.length() > 255) throw new ApiException(400, "Pesquisa muito longa");

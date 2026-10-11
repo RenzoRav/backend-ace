@@ -5,6 +5,7 @@ import br.com.loja.dto.CatalogDtos.PageView;
 import br.com.loja.exception.ApiException;
 import br.com.loja.model.*;
 import br.com.loja.repository.*;
+import java.math.BigDecimal;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -61,7 +62,7 @@ public class CampaignService {
   public CouponView coupon(String id, CouponInput couponInput) {
     if (couponInput.validUntil().isBefore(couponInput.validFrom())
         || ("PERCENT".equals(couponInput.type())
-            && couponInput.value().compareTo(new java.math.BigDecimal("100")) > 0))
+            && couponInput.value().compareTo(new BigDecimal("100")) > 0))
       throw new ApiException(400, "Período ou percentual inválido");
     var coupon =
         id == null

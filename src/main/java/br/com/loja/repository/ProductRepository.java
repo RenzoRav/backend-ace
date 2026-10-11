@@ -1,25 +1,28 @@
 package br.com.loja.repository;
 
 import br.com.loja.model.Product;
+import jakarta.persistence.LockModeType;
+import java.math.BigDecimal;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.query.Param;
 
 public interface ProductRepository
-    extends JpaRepository<Product, Long>,
-        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Product> {
+    extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
   @Query("select coalesce(sum(p.cost * p.stock),0) from Product p")
-  java.math.BigDecimal stockCost();
+  BigDecimal stockCost();
 
-  @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select e from Product e where e.id = :id")
-  java.util.Optional<Product> lockById(
-      @org.springframework.data.repository.query.Param("id") Long id);
+  Optional<Product> lockById(@Param("id") Long id);
 
-  org.springframework.data.domain.Page<Product> findByActiveTrue(
-      org.springframework.data.domain.Pageable pageable);
+  Page<Product> findByActiveTrue(Pageable pageable);
 
   @Query("select p from Product p where p.active = true and p.stock <= p.minimumStock")
-  org.springframework.data.domain.Page<Product> lowStock(
-      org.springframework.data.domain.Pageable page);
+  Page<Product> lowStock(Pageable page);
 
   @Query("select count(p) from Product p where p.active = true and p.stock <= p.minimumStock")
   long lowStockCount();

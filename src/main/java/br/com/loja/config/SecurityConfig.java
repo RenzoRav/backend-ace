@@ -2,6 +2,8 @@ package br.com.loja.config;
 
 import br.com.loja.repository.*;
 import br.com.loja.security.*;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,11 +29,9 @@ public class SecurityConfig {
 
   @Bean
   JwtEncoder encoder(@Value("$" + "{loja.jwt.secret}") String secret) {
-    if (secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32)
+    if (secret.getBytes(StandardCharsets.UTF_8).length < 32)
       throw new IllegalArgumentException("JWT_SECRET deve conter pelo menos 32 bytes");
-    return new NimbusJwtEncoder(
-        new com.nimbusds.jose.jwk.source.ImmutableSecret<>(
-            secret.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    return new NimbusJwtEncoder(new ImmutableSecret<>(secret.getBytes(StandardCharsets.UTF_8)));
   }
 
   @Bean
@@ -41,8 +41,7 @@ public class SecurityConfig {
       @Value("$" + "{loja.jwt.audience}") String audience) {
     var decoder =
         NimbusJwtDecoder.withSecretKey(
-                new SecretKeySpec(
-                    secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"))
+                new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"))
             .macAlgorithm(MacAlgorithm.HS256)
             .build();
     OAuth2TokenValidator<Jwt> audienceValidator =
