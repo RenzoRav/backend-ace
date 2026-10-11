@@ -2,18 +2,18 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_USER: florir
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-florir_dev}
-      POSTGRES_DB: florir
+      POSTGRES_USER: loja
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-loja_dev}
+      POSTGRES_DB: loja
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
-      - florir-postgres:/var/lib/postgresql/data
+      - loja-postgres:/var/lib/postgresql/data
       - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/01-test-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U florir -d florir"]
+      test: ["CMD-SHELL", "pg_isready -U loja -d loja"]
       interval: 5s
       timeout: 5s
       retries: 10
 volumes:
-  florir-postgres:
+  loja-postgres:

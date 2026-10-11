@@ -1,1 +1,1 @@
-CREATE DATABASE florir_test;
+CREATE DATABASE loja_test;
