@@ -1,6 +1,7 @@
 package br.com.loja.dto;
 
 import jakarta.validation.constraints.*;
+import br.com.loja.validation.PositiveIdentifier;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
@@ -30,7 +31,7 @@ public final class CampaignDtos {
           BigDecimal percent,
       @NotNull LocalDate validFrom,
       @NotNull LocalDate validUntil,
-      @NotEmpty @Size(max = 100) List<@NotBlank String> productIds) {}
+      @NotEmpty @Size(max = 100) List<@NotBlank @PositiveIdentifier String> productIds) {}
 
   public record PromotionView(
       String id,
@@ -46,3 +47,4 @@ public final class CampaignDtos {
 
   public record RateView(String id, int installmentCount, BigDecimal percent) {}
 }
+

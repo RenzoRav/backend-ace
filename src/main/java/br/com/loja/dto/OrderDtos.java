@@ -2,25 +2,26 @@ package br.com.loja.dto;
 
 import jakarta.validation.*;
 import jakarta.validation.constraints.*;
+import br.com.loja.validation.PositiveIdentifier;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
 
 public final class OrderDtos {
-  public record ItemInput(@NotBlank String productId, @Min(1) @Max(10000) int quantity) {}
+  public record ItemInput(@NotBlank @PositiveIdentifier String productId, @Min(1) @Max(10000) int quantity) {}
 
   public record OrderInput(
-      String customerId,
+      @PositiveIdentifier String customerId,
       @NotBlank @Pattern(regexp = "PIX|CASH|CARD|BOLETO|INSTALLMENTS") String paymentMethod,
       @Min(1) @Max(12) int installmentCount,
       boolean delivery,
-      String addressId,
-      String couponCode,
-      @NotEmpty @Size(max = 100) List<@Valid ItemInput> items) {}
+      @PositiveIdentifier String addressId,
+      @Size(max = 255) String couponCode,
+      @NotEmpty @Size(max = 100) List<@NotNull @Valid ItemInput> items) {}
 
   public record ItemView(
       String id,
-      String productId,
+      @PositiveIdentifier String productId,
       String productName,
       String brandName,
       String categoryName,
@@ -34,7 +35,7 @@ public final class OrderDtos {
 
   public record OrderView(
       String id,
-      String customerId,
+      @PositiveIdentifier String customerId,
       String customerName,
       String customerPhone,
       String status,
@@ -56,3 +57,4 @@ public final class OrderDtos {
 
   public record StatusInput(@NotBlank @Pattern(regexp = "PREPARING|FINISHED") String status) {}
 }
+
