@@ -1,0 +1,651 @@
+{
+  "findings": [
+    {
+      "id": "GHSA-9xv2-5v5q-p794",
+      "aliases": [
+        "BIT-tomcat-2026-65905",
+        "CVE-2026-65905"
+      ],
+      "severity": "CRITICAL",
+      "package": "org.apache.tomcat.embed:tomcat-embed-core",
+      "version": "11.0.24",
+      "fixed": [
+        "10.1.58",
+        "11.0.25",
+        "9.0.121"
+      ],
+      "url": "https://github.com/advisories/GHSA-9xv2-5v5q-p794"
+    },
+    {
+      "id": "GHSA-gcx9-497g-6cp6",
+      "aliases": [
+        "BIT-tomcat-2026-65182",
+        "CVE-2026-65182"
+      ],
+      "severity": "CRITICAL",
+      "package": "org.apache.tomcat.embed:tomcat-embed-core",
+      "version": "11.0.24",
+      "fixed": [
+        "10.1.58",
+        "11.0.25",
+        "9.0.121"
+      ],
+      "url": "https://github.com/advisories/GHSA-gcx9-497g-6cp6"
+    },
+    {
+      "id": "GHSA-h3x4-894j-xpx5",
+      "aliases": [
+        "BIT-tomcat-2026-68525",
+        "CVE-2026-68525"
+      ],
+      "severity": "CRITICAL",
+      "package": "org.apache.tomcat.embed:tomcat-embed-core",
+      "version": "11.0.24",
+      "fixed": [
+        "10.1.58",
+        "11.0.25",
+        "9.0.121"
+      ],
+      "url": "https://github.com/advisories/GHSA-h3x4-894j-xpx5"
+    },
+    {
+      "id": "GHSA-7hhh-6rmp-j9qf",
+      "aliases": [
+        "CVE-2026-89425"
+      ],
+      "severity": "HIGH",
+      "package": "tools.jackson.core:jackson-core",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.11",
+        "2.21.7",
+        "2.22.3",
+        "3.1.7",
+        "3.2.3"
+      ],
+      "url": "https://github.com/advisories/GHSA-7hhh-6rmp-j9qf"
+    },
+    {
+      "id": "GHSA-p6pp-m3f8-5c89",
+      "aliases": [
+        "CVE-2026-89407"
+      ],
+      "severity": "HIGH",
+      "package": "tools.jackson.core:jackson-core",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.11",
+        "2.21.7",
+        "2.22.3",
+        "3.1.7",
+        "3.2.2"
+      ],
+      "url": "https://github.com/advisories/GHSA-p6pp-m3f8-5c89"
+    },
+    {
+      "id": "GHSA-cxp5-3px4-pw24",
+      "aliases": [
+        "CVE-2026-91777"
+      ],
+      "severity": "HIGH",
+      "package": "tools.jackson.core:jackson-databind",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.11",
+        "2.21.7",
+        "2.22.3",
+        "3.1.7",
+        "3.2.3"
+      ],
+      "url": "https://github.com/advisories/GHSA-cxp5-3px4-pw24"
+    },
+    {
+      "id": "GHSA-gx83-3vf8-gh7j",
+      "aliases": [
+        "CVE-2026-83557"
+      ],
+      "severity": "MODERATE",
+      "package": "tools.jackson.core:jackson-databind",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.10",
+        "2.21.6",
+        "2.22.2",
+        "3.1.6",
+        "3.2.2"
+      ],
+      "url": "https://github.com/advisories/GHSA-gx83-3vf8-gh7j"
+    },
+    {
+      "id": "GHSA-q4xh-88c3-wmh7",
+      "aliases": [
+        "CVE-2026-68497"
+      ],
+      "severity": "HIGH",
+      "package": "tools.jackson.core:jackson-databind",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.10",
+        "2.21.6",
+        "2.22.2",
+        "3.1.6",
+        "3.2.2"
+      ],
+      "url": "https://github.com/advisories/GHSA-q4xh-88c3-wmh7"
+    },
+    {
+      "id": "GHSA-wjgm-6hv5-3cvf",
+      "aliases": [
+        "CVE-2026-19032"
+      ],
+      "severity": "MODERATE",
+      "package": "tools.jackson.core:jackson-databind",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.10",
+        "2.21.6",
+        "2.22.2",
+        "3.1.6",
+        "3.2.2"
+      ],
+      "url": "https://github.com/advisories/GHSA-wjgm-6hv5-3cvf"
+    },
+    {
+      "id": "GHSA-wv8q-qhhj-9h54",
+      "aliases": [
+        "CVE-2026-91776"
+      ],
+      "severity": "HIGH",
+      "package": "tools.jackson.core:jackson-databind",
+      "version": "3.1.5",
+      "fixed": [
+        "2.18.11",
+        "2.21.7",
+        "2.22.3",
+        "3.1.7",
+        "3.2.3"
+      ],
+      "url": "https://github.com/advisories/GHSA-wv8q-qhhj-9h54"
+    }
+  ],
+  "dependencies": [
+    {
+      "group": "ch.qos.logback",
+      "name": "logback-classic",
+      "version": "1.5.38"
+    },
+    {
+      "group": "ch.qos.logback",
+      "name": "logback-core",
+      "version": "1.5.38"
+    },
+    {
+      "group": "com.fasterxml.jackson.core",
+      "name": "jackson-annotations",
+      "version": "2.21"
+    },
+    {
+      "group": "com.fasterxml",
+      "name": "classmate",
+      "version": "1.7.3"
+    },
+    {
+      "group": "com.nimbusds",
+      "name": "nimbus-jose-jwt",
+      "version": "10.9.1"
+    },
+    {
+      "group": "com.sun.istack",
+      "name": "istack-commons-runtime",
+      "version": "4.1.2"
+    },
+    {
+      "group": "com.zaxxer",
+      "name": "HikariCP",
+      "version": "7.0.2"
+    },
+    {
+      "group": "commons-logging",
+      "name": "commons-logging",
+      "version": "1.3.6"
+    },
+    {
+      "group": "io.micrometer",
+      "name": "micrometer-commons",
+      "version": "1.17.1"
+    },
+    {
+      "group": "io.micrometer",
+      "name": "micrometer-observation",
+      "version": "1.17.1"
+    },
+    {
+      "group": "jakarta.activation",
+      "name": "jakarta.activation-api",
+      "version": "2.1.4"
+    },
+    {
+      "group": "jakarta.annotation",
+      "name": "jakarta.annotation-api",
+      "version": "3.0.0"
+    },
+    {
+      "group": "jakarta.inject",
+      "name": "jakarta.inject-api",
+      "version": "2.0.1"
+    },
+    {
+      "group": "jakarta.persistence",
+      "name": "jakarta.persistence-api",
+      "version": "3.2.0"
+    },
+    {
+      "group": "jakarta.transaction",
+      "name": "jakarta.transaction-api",
+      "version": "2.0.1"
+    },
+    {
+      "group": "jakarta.validation",
+      "name": "jakarta.validation-api",
+      "version": "3.1.1"
+    },
+    {
+      "group": "jakarta.xml.bind",
+      "name": "jakarta.xml.bind-api",
+      "version": "4.0.5"
+    },
+    {
+      "group": "net.bytebuddy",
+      "name": "byte-buddy",
+      "version": "1.18.11"
+    },
+    {
+      "group": "org.antlr",
+      "name": "antlr4-runtime",
+      "version": "4.13.2"
+    },
+    {
+      "group": "org.apache.logging.log4j",
+      "name": "log4j-api",
+      "version": "2.25.5"
+    },
+    {
+      "group": "org.apache.logging.log4j",
+      "name": "log4j-to-slf4j",
+      "version": "2.25.5"
+    },
+    {
+      "group": "org.apache.tomcat.embed",
+      "name": "tomcat-embed-core",
+      "version": "11.0.24"
+    },
+    {
+      "group": "org.apache.tomcat.embed",
+      "name": "tomcat-embed-el",
+      "version": "11.0.24"
+    },
+    {
+      "group": "org.apache.tomcat.embed",
+      "name": "tomcat-embed-websocket",
+      "version": "11.0.24"
+    },
+    {
+      "group": "org.aspectj",
+      "name": "aspectjweaver",
+      "version": "1.9.25.1"
+    },
+    {
+      "group": "org.checkerframework",
+      "name": "checker-qual",
+      "version": "3.55.1"
+    },
+    {
+      "group": "org.eclipse.angus",
+      "name": "angus-activation",
+      "version": "2.0.3"
+    },
+    {
+      "group": "org.flywaydb",
+      "name": "flyway-core",
+      "version": "12.4.0"
+    },
+    {
+      "group": "org.flywaydb",
+      "name": "flyway-database-postgresql",
+      "version": "12.4.0"
+    },
+    {
+      "group": "org.glassfish.jaxb",
+      "name": "jaxb-core",
+      "version": "4.0.9"
+    },
+    {
+      "group": "org.glassfish.jaxb",
+      "name": "jaxb-runtime",
+      "version": "4.0.9"
+    },
+    {
+      "group": "org.glassfish.jaxb",
+      "name": "txw2",
+      "version": "4.0.9"
+    },
+    {
+      "group": "org.hibernate.models",
+      "name": "hibernate-models",
+      "version": "1.1.1"
+    },
+    {
+      "group": "org.hibernate.orm",
+      "name": "hibernate-core",
+      "version": "7.4.5.Final"
+    },
+    {
+      "group": "org.hibernate.validator",
+      "name": "hibernate-validator",
+      "version": "9.1.3.Final"
+    },
+    {
+      "group": "org.jboss.logging",
+      "name": "jboss-logging",
+      "version": "3.6.3.Final"
+    },
+    {
+      "group": "org.jspecify",
+      "name": "jspecify",
+      "version": "1.0.1"
+    },
+    {
+      "group": "org.postgresql",
+      "name": "postgresql",
+      "version": "42.7.13"
+    },
+    {
+      "group": "org.slf4j",
+      "name": "jul-to-slf4j",
+      "version": "2.0.18"
+    },
+    {
+      "group": "org.slf4j",
+      "name": "slf4j-api",
+      "version": "2.0.18"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-autoconfigure",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-data-commons",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-data-jpa",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-flyway",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-hibernate",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-http-converter",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-jackson",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-jdbc",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-jpa",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-persistence",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-security",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-security-oauth2-resource-server",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-servlet",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-sql",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-data-jpa",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-flyway",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-jackson",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-jdbc",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-logging",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-security",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-security-oauth2-resource-server",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-tomcat",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-tomcat-runtime",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-validation",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-starter-webmvc",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-tomcat",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-transaction",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-validation",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-web-server",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.boot",
+      "name": "spring-boot-webmvc",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.data",
+      "name": "spring-data-commons",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.data",
+      "name": "spring-data-jpa",
+      "version": "4.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-config",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-core",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-crypto",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-oauth2-core",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-oauth2-jose",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-oauth2-resource-server",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework.security",
+      "name": "spring-security-web",
+      "version": "7.1.1"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-aop",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-aspects",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-beans",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-context",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-core",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-expression",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-jdbc",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-orm",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-tx",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-web",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.springframework",
+      "name": "spring-webmvc",
+      "version": "7.0.9"
+    },
+    {
+      "group": "org.yaml",
+      "name": "snakeyaml",
+      "version": "2.6"
+    },
+    {
+      "group": "tools.jackson.core",
+      "name": "jackson-core",
+      "version": "3.1.5"
+    },
+    {
+      "group": "tools.jackson.core",
+      "name": "jackson-databind",
+      "version": "3.1.5"
+    }
+  ],
+  "totalConsultado": 95,
+  "data": "2026-10-10",
+  "fonte": "https://api.osv.dev/v1/querybatch"
+}
