@@ -4,6 +4,10 @@ import br.com.loja.dto.AuthDtos.*;
 import br.com.loja.exception.ApiException;
 import br.com.loja.security.ActorService;
 import br.com.loja.service.AuthService;
+import br.com.loja.service.AuthenticationLimitService;
+import br.com.loja.service.SecurityEventService;
+import java.util.Locale;
+import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Duration;
@@ -17,12 +21,22 @@ public class AuthController {
   private final AuthService authService;
   private final ActorService actorService;
   private final boolean secure;
+  private final AuthenticationLimitService authenticationLimitService;
+  private final SecurityEventService securityEventService;
+  private final int accountMaximum;
 
   public AuthController(
       AuthService authService,
+      AuthenticationLimitService authenticationLimitService,
+      SecurityEventService securityEventService,
+      @Value("${loja.limits.login-account:10}") int accountMaximum,
       ActorService actorService,
       @Value("$" + "{loja.cookie.secure}") boolean secureCookie) {
     this.authService = authService;
+    this.authenticationLimitService=authenticationLimitService;
+    this.securityEventService=securityEventService;
+    if(accountMaximum<1||accountMaximum>100000)throw new IllegalStateException("Limite de conta inválido");
+    this.accountMaximum=accountMaximum;
     this.actorService = actorService;
     secure = secureCookie;
   }
@@ -66,7 +80,13 @@ public class AuthController {
 
   @PostMapping("/{realm}/login")
   ResponseEntity<Session> login(@PathVariable String realm, @Valid @RequestBody Login data) {
-    return result(realm, authService.login(role(realm), data), 200);
+    var decision=authenticationLimitService.check("login-account",realm+":"+data.email().strip().toLowerCase(Locale.ROOT),accountMaximum,Duration.ofMinutes(5));
+    if(!decision.allowed())return ResponseEntity.status(429).header("Retry-After",Long.toString(decision.retryAfterSeconds())).build();
+    try{
+      var authenticationResult=authService.login(role(realm),data);
+      securityEventService.record("LOGIN","ALLOWED",authenticationResult.session().accountId(),UUID.randomUUID().toString());
+      return result(realm,authenticationResult,200);
+    }catch(ApiException exception){securityEventService.record("LOGIN","DENIED",data.email().strip().toLowerCase(Locale.ROOT),UUID.randomUUID().toString());throw exception;}
   }
 
   @PostMapping("/customer/register")
@@ -93,3 +113,4 @@ public class AuthController {
     return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie(realm, "", 0)).build();
   }
 }
+

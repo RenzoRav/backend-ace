@@ -2,6 +2,10 @@ package br.com.loja.config;
 
 import br.com.loja.repository.*;
 import br.com.loja.security.*;
+import br.com.loja.service.AuthenticationLimitService;
+import br.com.loja.service.SecurityEventService;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -21,6 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.*;
 
 @Configuration
+@EnableScheduling
 public class SecurityConfig {
   @Bean
   PasswordEncoder passwordEncoder() {
@@ -58,6 +63,9 @@ public class SecurityConfig {
   @Bean
   SecurityFilterChain security(
       HttpSecurity http,
+      AuthenticationLimitService authenticationLimitService,
+      SecurityEventService securityEventService,
+      Environment environment,
       ManagerRepository managerRepository,
       CustomerAccountRepository customerAccountRepository,
       @Value("$" + "{loja.allowed-origin}") String origin)
@@ -88,6 +96,7 @@ public class SecurityConfig {
                 resourceServer.jwt(jwtToken -> jwtToken.jwtAuthenticationConverter(converter)))
         .addFilterBefore(new RequestBodyLimitFilter(262144), BearerTokenAuthenticationFilter.class)
         .addFilterBefore(new AuthOriginFilter(origin), BearerTokenAuthenticationFilter.class)
+        .addFilterBefore(new AuthenticationLimitFilter(authenticationLimitService,securityEventService,environment), BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new CredentialVersionFilter(managerRepository, customerAccountRepository),
             BearerTokenAuthenticationFilter.class);
@@ -107,4 +116,5 @@ public class SecurityConfig {
     return source;
   }
 }
+
 
