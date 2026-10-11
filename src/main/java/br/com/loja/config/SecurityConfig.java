@@ -86,6 +86,7 @@ public class SecurityConfig {
         .oauth2ResourceServer(
             resourceServer ->
                 resourceServer.jwt(jwtToken -> jwtToken.jwtAuthenticationConverter(converter)))
+        .addFilterBefore(new RequestBodyLimitFilter(262144), BearerTokenAuthenticationFilter.class)
         .addFilterBefore(new AuthOriginFilter(origin), BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
             new CredentialVersionFilter(managerRepository, customerAccountRepository),
@@ -106,3 +107,4 @@ public class SecurityConfig {
     return source;
   }
 }
+
