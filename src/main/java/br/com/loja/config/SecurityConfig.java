@@ -5,14 +5,16 @@ import br.com.loja.security.*;
 import br.com.loja.service.AuthenticationLimitService;
 import br.com.loja.service.SecurityEventService;
 import br.com.loja.service.SessionFamilyService;
-import org.springframework.core.env.Environment;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -55,9 +57,22 @@ public class SecurityConfig {
             jwtToken.getAudience().contains(audience)
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
+    OAuth2TokenValidator<Jwt> lifetimeValidator =
+        jwtToken -> {
+          Instant issuedAt = jwtToken.getIssuedAt(), expiresAt = jwtToken.getExpiresAt();
+          boolean valid =
+              issuedAt != null
+                  && expiresAt != null
+                  && expiresAt.isAfter(issuedAt)
+                  && !issuedAt.isAfter(Instant.now().plusSeconds(60))
+                  && Duration.between(issuedAt, expiresAt).getSeconds() <= 900;
+          return valid
+              ? OAuth2TokenValidatorResult.success()
+              : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
+        };
     decoder.setJwtValidator(
         new DelegatingOAuth2TokenValidator<>(
-            JwtValidators.createDefaultWithIssuer(issuer), audienceValidator));
+            JwtValidators.createDefaultWithIssuer(issuer), audienceValidator, lifetimeValidator));
     return decoder;
   }
 
@@ -98,9 +113,13 @@ public class SecurityConfig {
                 resourceServer.jwt(jwtToken -> jwtToken.jwtAuthenticationConverter(converter)))
         .addFilterBefore(new RequestBodyLimitFilter(262144), BearerTokenAuthenticationFilter.class)
         .addFilterBefore(new AuthOriginFilter(origin), BearerTokenAuthenticationFilter.class)
-        .addFilterBefore(new AuthenticationLimitFilter(authenticationLimitService,securityEventService,environment), BearerTokenAuthenticationFilter.class)
+        .addFilterBefore(
+            new AuthenticationLimitFilter(
+                authenticationLimitService, securityEventService, environment),
+            BearerTokenAuthenticationFilter.class)
         .addFilterAfter(
-            new CredentialVersionFilter(sessionFamilyService,managerRepository, customerAccountRepository),
+            new CredentialVersionFilter(
+                sessionFamilyService, managerRepository, customerAccountRepository),
             BearerTokenAuthenticationFilter.class);
     return http.build();
   }
@@ -118,6 +137,3 @@ public class SecurityConfig {
     return source;
   }
 }
-
-
-

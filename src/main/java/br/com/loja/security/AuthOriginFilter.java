@@ -13,13 +13,13 @@ public class AuthOriginFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    if (request.getRequestURI().startsWith("/api/v1/auth/")
+    if (RequestPaths.path(request).startsWith("/api/v1/auth/")
         && !request.getMethod().equals("OPTIONS")
         && !request.getMethod().equals("GET")) {
       String sent = request.getHeader("Origin");
       boolean cookie =
-          request.getRequestURI().endsWith("/refresh")
-              || request.getRequestURI().endsWith("/logout");
+          RequestPaths.path(request).endsWith("/refresh")
+              || RequestPaths.path(request).endsWith("/logout");
       if ((sent != null && !origin.equals(sent)) || (cookie && sent == null)) {
         response.setStatus(403);
         return;

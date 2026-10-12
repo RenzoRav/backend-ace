@@ -1,12 +1,14 @@
 package br.com.loja.dto;
 
-import jakarta.validation.constraints.*;
 import br.com.loja.validation.PositiveIdentifier;
+import jakarta.validation.constraints.*;
 import java.time.*;
 
 public final class RelationshipDtos {
   public record BenefitInput(
-      @NotBlank @PositiveIdentifier String customerId, @PositiveIdentifier String couponId, @Min(1900) @Max(3000) int year) {}
+      @NotBlank @PositiveIdentifier String customerId,
+      @PositiveIdentifier String couponId,
+      @Min(1900) @Max(3000) int year) {}
 
   public record BenefitView(
       String id,
@@ -22,7 +24,11 @@ public final class RelationshipDtos {
       @NotNull LocalDate date) {}
 
   public record GiftView(
-      String id, @PositiveIdentifier String customerId, String customerName, String description, LocalDate date) {}
+      String id,
+      @PositiveIdentifier String customerId,
+      String customerName,
+      String description,
+      LocalDate date) {}
 
   public record BillingInput(@NotBlank @Size(max = 4000) String message) {}
 
@@ -50,4 +56,3 @@ public final class RelationshipDtos {
       String reply,
       Instant createdAt) {}
 }
-

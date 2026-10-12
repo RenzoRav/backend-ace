@@ -2,10 +2,10 @@ package br.com.loja.security;
 
 import br.com.loja.repository.*;
 import br.com.loja.service.SessionFamilyService;
-import java.time.Instant;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -40,7 +40,13 @@ public class CredentialVersionFilter extends OncePerRequestFilter {
                   .orElse(false);
       } catch (RuntimeException ignored) {
       }
-      valid=valid && sessionFamilyService.isActive(jwtToken.getClaimAsString("sessionFamilyId"),jwtToken.getClaimAsString("role"),Long.valueOf(jwtToken.getSubject()),Instant.now());
+      valid =
+          valid
+              && sessionFamilyService.isActive(
+                  jwtToken.getClaimAsString("sessionFamilyId"),
+                  jwtToken.getClaimAsString("role"),
+                  Long.valueOf(jwtToken.getSubject()),
+                  Instant.now());
       if (!valid) {
         SecurityContextHolder.clearContext();
         response.setStatus(401);
@@ -52,4 +58,3 @@ public class CredentialVersionFilter extends OncePerRequestFilter {
     chain.doFilter(request, response);
   }
 }
-

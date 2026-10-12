@@ -1,5 +1,6 @@
 package br.com.loja.dto;
 
+import br.com.loja.validation.PositiveIdentifier;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,8 +19,8 @@ public final class CatalogDtos {
       @NotNull @DecimalMin("0.00") @Digits(integer = 12, fraction = 2) BigDecimal cost,
       @Min(0) int stock,
       @Min(0) int minimumStock,
-      @NotBlank String brandId,
-      @NotBlank String categoryId,
+      @NotBlank @PositiveIdentifier String brandId,
+      @NotBlank @PositiveIdentifier String categoryId,
       boolean active) {}
 
   public record ProductView(

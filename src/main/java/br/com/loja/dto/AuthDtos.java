@@ -1,11 +1,12 @@
 package br.com.loja.dto;
 
-import jakarta.validation.constraints.*;
 import br.com.loja.validation.Utf8ByteSize;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
 public final class AuthDtos {
-  public record Login(@NotBlank @Email @Size(max = 255) String email, @NotBlank @Utf8ByteSize String password) {}
+  public record Login(
+      @NotBlank @Email @Size(max = 255) String email, @NotBlank @Utf8ByteSize String password) {}
 
   public record Register(
       @NotBlank @Size(max = 255) String name,
@@ -23,6 +24,6 @@ public final class AuthDtos {
       String name) {}
 
   public record PasswordChange(
-      @NotBlank @Utf8ByteSize String currentPassword, @NotBlank @Size(min = 10, max = 72) @Utf8ByteSize String newPassword) {}
+      @NotBlank @Utf8ByteSize String currentPassword,
+      @NotBlank @Size(min = 10, max = 72) @Utf8ByteSize String newPassword) {}
 }
-

@@ -13,8 +13,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class ApiExceptionHandler {
   public record Error(String message) {}
+
   @ExceptionHandler(DataAccessException.class)
-  ResponseEntity<Error> unavailable(DataAccessException exception){return ResponseEntity.status(503).body(new Error("Servico temporariamente indisponivel"));}
+  ResponseEntity<Error> unavailable(DataAccessException exception) {
+    return ResponseEntity.status(503).body(new Error("Servico temporariamente indisponivel"));
+  }
 
   @ExceptionHandler(ApiException.class)
   ResponseEntity<Error> api(ApiException exception) {
@@ -51,4 +54,3 @@ public class ApiExceptionHandler {
         .body(new Error("Conflito de dados; atualize e tente novamente"));
   }
 }
-

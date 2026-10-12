@@ -29,7 +29,7 @@ public class RefreshSession extends BaseEntity {
 
   @Column(nullable = false)
   private long credentialVersion;
-  @Column(name = "family_id", length=36)
+
+  @Column(name = "family_id", length = 36)
   private String familyId;
 }
-

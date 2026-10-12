@@ -1,14 +1,15 @@
 package br.com.loja.dto;
 
+import br.com.loja.validation.PositiveIdentifier;
 import jakarta.validation.*;
 import jakarta.validation.constraints.*;
-import br.com.loja.validation.PositiveIdentifier;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
 
 public final class OrderDtos {
-  public record ItemInput(@NotBlank @PositiveIdentifier String productId, @Min(1) @Max(10000) int quantity) {}
+  public record ItemInput(
+      @NotBlank @PositiveIdentifier String productId, @Min(1) @Max(10000) int quantity) {}
 
   public record OrderInput(
       @PositiveIdentifier String customerId,
@@ -57,4 +58,3 @@ public final class OrderDtos {
 
   public record StatusInput(@NotBlank @Pattern(regexp = "PREPARING|FINISHED") String status) {}
 }
-
