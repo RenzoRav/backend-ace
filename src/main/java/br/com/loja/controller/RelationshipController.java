@@ -67,6 +67,12 @@ public class RelationshipController {
     return relationshipService.reply(id, replyInput);
   }
 
+  @GetMapping("/customer/tickets/paged")
+  PageView<TicketView> minePage(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    return relationshipService.myTicketsPage(page, size);
+  }
+
   @GetMapping("/customer/tickets")
   List<TicketView> mine() {
     return relationshipService.myTickets();

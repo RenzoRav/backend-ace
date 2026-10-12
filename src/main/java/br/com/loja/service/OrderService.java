@@ -94,12 +94,20 @@ public class OrderService {
   }
 
   @Transactional(readOnly = true)
+  public PageView<OrderView> myOrdersPage(int page, int size) {
+    return PageView.from(
+        purchaseOrderRepository
+            .findByCustomerIdOrderByCreatedAtDesc(
+                actorService.customer().getId(), CatalogService.page(page, size))
+            .map(this::view));
+  }
+
+  @Transactional(readOnly = true)
   public List<OrderView> myOrders() {
-    return purchaseOrderRepository
-        .findByCustomerIdOrderByCreatedAtDesc(actorService.customer().getId())
-        .stream()
-        .map(this::view)
-        .toList();
+    var result = myOrdersPage(0, 100);
+    if (result.totalElements() > 100)
+      throw new ApiException(413, "Use /customer/orders/paged para consultar todos os pedidos");
+    return result.content();
   }
 
   @Transactional(readOnly = true)

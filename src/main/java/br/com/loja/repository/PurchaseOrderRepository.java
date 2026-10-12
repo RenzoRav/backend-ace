@@ -4,6 +4,8 @@ import br.com.loja.model.PurchaseOrder;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +15,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
   Optional<PurchaseOrder> lockById(@Param("id") Long id);
 
   List<PurchaseOrder> findByCustomerIdOrderByCreatedAtDesc(Long id);
+
+  Page<PurchaseOrder> findByCustomerIdOrderByCreatedAtDesc(Long id, Pageable pageable);
 
   Optional<PurchaseOrder> findByIdempotencyKey(String idempotencyKey);
 

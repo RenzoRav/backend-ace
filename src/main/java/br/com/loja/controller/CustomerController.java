@@ -47,6 +47,12 @@ public class CustomerController {
     return customerService.updateMe(data);
   }
 
+  @GetMapping("/customer/addresses/paged")
+  PageView<AddressView> addressesPage(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    return customerService.addressesPage(page, size);
+  }
+
   @GetMapping("/customer/addresses")
   List<AddressView> addresses() {
     return customerService.addresses();

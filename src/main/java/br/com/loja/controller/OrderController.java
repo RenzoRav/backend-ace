@@ -21,6 +21,12 @@ public class OrderController {
     return orderService.list(page, size);
   }
 
+  @GetMapping("/customer/orders/paged")
+  PageView<OrderView> minePage(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    return orderService.myOrdersPage(page, size);
+  }
+
   @GetMapping("/customer/orders")
   List<OrderView> mine() {
     return orderService.myOrders();

@@ -170,10 +170,19 @@ public class RelationshipService {
   }
 
   @Transactional(readOnly = true)
+  public PageView<TicketView> myTicketsPage(int page, int size) {
+    return PageView.from(
+        supportTicketRepository
+            .findByCustomerId(actorService.customer().getId(), CatalogService.page(page, size))
+            .map(this::view));
+  }
+
+  @Transactional(readOnly = true)
   public List<TicketView> myTickets() {
-    return supportTicketRepository.findByCustomerId(actorService.customer().getId()).stream()
-        .map(this::view)
-        .toList();
+    var result = myTicketsPage(0, 100);
+    if (result.totalElements() > 100)
+      throw new ApiException(413, "Use /customer/tickets/paged para consultar todos os chamados");
+    return result.content();
   }
 
   public TicketView ticket(TicketInput ticketInput) {

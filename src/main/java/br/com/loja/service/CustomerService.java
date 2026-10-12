@@ -83,10 +83,20 @@ public class CustomerService {
   }
 
   @Transactional(readOnly = true)
+  public PageView<AddressView> addressesPage(int page, int size) {
+    return PageView.from(
+        customerAddressRepository
+            .findByCustomerId(actorService.customer().getId(), CatalogService.page(page, size))
+            .map(this::view));
+  }
+
+  @Transactional(readOnly = true)
   public List<AddressView> addresses() {
-    return customerAddressRepository.findByCustomerId(actorService.customer().getId()).stream()
-        .map(this::view)
-        .toList();
+    var result = addressesPage(0, 100);
+    if (result.totalElements() > 100)
+      throw new ApiException(
+          413, "Use /customer/addresses/paged para consultar todos os enderecos");
+    return result.content();
   }
 
   public AddressView address(String id, AddressInput addressInput) {
