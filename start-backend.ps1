@@ -31,9 +31,9 @@ foreach ($db in @('loja','loja_test')) {
         if ($LASTEXITCODE -ne 0) { throw "Falha ao criar $db." }
     }
 }
-$url = "http://localhost:$Port/api/v1/health"
+$url = "http://127.0.0.1:$Port/api/v1/health"
 try { $health=Invoke-RestMethod -Uri $url -TimeoutSec 2 } catch { $health=$null }
-if ($health -and $health.application -eq 'backend-loja') { Write-Output "Backend Loja já está rodando: http://localhost:$Port"; exit 0 }
+if ($health -and $health.application -eq 'backend-loja') { Write-Output "Backend Loja já está rodando: http://127.0.0.1:$Port"; exit 0 }
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { throw "A porta $Port está ocupada. Escolha outra com -Port." }
 Push-Location $root
 try {
@@ -46,8 +46,9 @@ try {
     Set-Content -LiteralPath (Join-Path $runtime 'backend.pid') -Value $process.Id
     for ($i=0;$i -lt 90;$i++) {
         if ($process.HasExited) { throw 'A API encerrou. Confira .runtime/backend.err.log e backend.out.log.' }
-        try { $health=Invoke-RestMethod -Uri $url -TimeoutSec 2; if ($health.application -eq 'backend-loja') { Write-Output "Backend Loja iniciado: http://localhost:$Port"; exit 0 } } catch { }
+        try { $health=Invoke-RestMethod -Uri $url -TimeoutSec 2; if ($health.application -eq 'backend-loja') { Write-Output "Backend Loja iniciado: http://127.0.0.1:$Port"; exit 0 } } catch { }
         Start-Sleep -Milliseconds 500
     }
     throw 'Confira os logs de inicialização em .runtime.'
 } finally { Pop-Location }
+
