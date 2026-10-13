@@ -38,4 +38,4 @@ A loja ainda nao possui nome comercial. BackendLoja, backend-loja e br.com.loja 
 
 Os bancos locais loja e loja_test foram copiados dos bancos anteriores, preservando cadastros e movimentos. Somente a conta de demonstracao foi ajustada para gestora@loja.local / LojaDev123!, com revogacao de tokens anteriores. Backups e bancos anteriores permanecem para restauracao.
 
-A migracao SQL V1 ja aplicada conserva seu nome e conteudo historicos para preservar o checksum validado pelo Flyway. Isso nao define a marca da loja. Historico Git e enderecos de repositorios existentes tambem nao sao reescritos nesta refatoracao.
+A migracao V1 usa V1__loja_schema.sql. O historico local foi alinhado explicitamente com Flyway repair e validado sem modificar tabelas de negocio. Novas instalacoes usam o arquivo neutro normalmente.
