@@ -1,16 +1,16 @@
 # API Loja
 
-Base: http://localhost:8080/api/v1. JSON. IDs string, dinheiro decimal. Erros 400/401/403/404/409. Erros de negócio retornam message; filtro de autenticação pode retornar corpo vazio. Listagens da gestora: page=0&size=20 (size até 100), envelope content/page/size/totalElements/totalPages.
+Base: http://localhost:8080/api/v1. JSON. IDs string, dinheiro decimal. Erros 400/401/403/404/409; limites de requisição retornam 413, limites de autenticação retornam 429 com Retry-After, e indisponibilidade do limitador retorna 503. Erros de negócio retornam message; filtro de autenticação pode retornar corpo vazio. Listagens da gestora: page=0&size=20 (size até 100), envelope content/page/size/totalElements/totalPages.
 
 ## Login e credenciais
 
 - POST /auth/manager/login e /auth/customer/login: email, password.
-- POST /auth/customer/register: name, email, phone, password (10–72 caracteres), birthday opcional YYYY-MM-DD.
+- POST /auth/customer/register: name, email, phone, password (mínimo 10 caracteres e máximo 72 bytes UTF-8), birthday opcional YYYY-MM-DD.
 - POST /auth/{realm}/refresh: cookies e Origin da aplicação, realm manager/customer.
 - POST /auth/{realm}/logout: cookies e Origin; revoga sessões da conta.
 - POST /auth/{realm}/password: Bearer, currentPassword, newPassword; revoga sessões anteriores.
 
-Resposta: accessToken, tokenType=Bearer, expiresIn=900, role, accountId, name. Refresh fica só em cookie HttpOnly. Envie Authorization: Bearer TOKEN em rotas privadas. Refresh/logout exigem Origin: http://localhost:3000 ou origem configurada. Cliente/gestora têm cookies separados.
+Resposta: accessToken, tokenType=Bearer, expiresIn=900, role, accountId, name. Refresh fica só em cookie HttpOnly. Envie Authorization: Bearer TOKEN em rotas privadas. Refresh/logout exigem Origin: http://localhost:3000 ou origem configurada. Cliente/gestora têm cookies separados. O access token deve ficar na memória do cliente. Refresh rotaciona o token, com inatividade máxima de sete dias e duração absoluta da família de 30 dias. Reutilizar um refresh consumido revoga a família; coordene a renovação entre requisições e abas.
 
 ```powershell
 $headers = @{ Origin = 'http://localhost:3000' }
@@ -81,7 +81,7 @@ OrderView: snapshots/totais/items/installments/history. Status NEW → CONFIRMED
 
 ## Banco
 
-Flyway V1 cria domínio/complementos, V2 unicidade de nomes ignorando caixa, V3 versão de credencial do refresh. JPA valida schema. Testes usam PostgreSQL real, incluindo confirmação concorrente e consistência do caixa. Produção exige variáveis externas e não habilita simulação.
+Flyway gerencia as migrações V1–V6, incluindo domínio, unicidade, credenciais, chave composta de promoções, limites de autenticação e famílias de sessão. JPA valida schema. Testes usam PostgreSQL real, incluindo confirmação concorrente e consistência do caixa. Produção exige variáveis externas e não habilita simulação.
 
 ## Consultas complementares dos casos de uso
 
@@ -93,3 +93,7 @@ Flyway V1 cria domínio/complementos, V2 unicidade de nomes ignorando caixa, V3 
 - GET /manager/customers/{id}/birthday-whatsapp-preview: mensagem de aniversário/link, sent=false, sem envio automático.
 - V4 mantém a chave primária composta product_id/promotion_id do diagrama lógico.
 
+
+## Limites e paginação de clientes
+
+Corpos JSON têm limite de 256 KiB. Use GET `/customer/orders/paged`, `/customer/addresses/paged` e `/customer/tickets/paged` com `page=0&size=20` (page não negativo e size de 1 a 100). As respostas usam o envelope content/page/size/totalElements/totalPages. As rotas de listagem sem `/paged` retornam até 100 registros; acima disso, respondem 413 e indicam a rota paginada.

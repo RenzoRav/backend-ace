@@ -1,1 +1,0 @@
-CREATE DATABASE loja_test;

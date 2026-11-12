@@ -1,45 +1,56 @@
-HELP.md
-.gradle
+.gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+out/
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+*.class
+*.jar
+*.war
+!gradle/wrapper/gradle-wrapper.jar
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+.env
+.env.*
+!.env.example
+*.local.properties
+*.local.yml
+*.local.yaml
+.runtime/
+.evidence/
+*.log
+*.pid
+*.hprof
+
+.idea/
+.vscode/
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
+/dist/
 
-### VS Code ###
-.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.swp
+*.swo
+*~
+*.bak
 
-.runtime/
-.env
-*.log
-
-
-.evidence/
+/HELP.md
+/docs/*
+!/docs/API.md
+/tools/RepairMigrationHistory.java
+/tools/repair-migration-history.gradle
+/start-backend.ps1
+/stop-backend.ps1
 
